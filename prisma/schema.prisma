@@ -1,0 +1,230 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String // Hashed
+  name     String
+  role     String @default("USER") // ADMIN, USER
+  isGlobalAdmin Boolean @default(false) // Super Admin
+  tokenVersion Int @default(0) // For session invalidation
+
+  memberships    OrganizationMember[]
+  customers      Customer[]
+  companies      Company[]
+  products       Product[]
+  tickets        Ticket[]
+  ticketItems    TicketItem[]
+  companyBatches CompanyBatch[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id      Int     @id @default(autoincrement())
+  name    String
+  address String?
+  phone   String
+  email   String?
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  tickets   Ticket[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Company {
+  id      Int     @id @default(autoincrement())
+  name    String
+  address String?
+  phone   String?
+  email   String?
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  batches   CompanyBatch[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          Int     @id @default(autoincrement())
+  name        String
+  brand       String
+  modelNumber String?
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  ticketItems TicketItem[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// Ticket represents the Customer Interaction (Receipt)
+model Ticket {
+  id Int @id @default(autoincrement())
+
+  // Relations
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  items TicketItem[]
+
+  // Stage 1: Inward (Ticket Level)
+  receiptMethod String // HAND_ON, COURIER
+
+  // Stage 4: Outward to Customer (Ticket Level - usually all items returned together, but can be partial)
+  // We can track closing status per item, or have a general status.
+  // Let's keep general status for high-level filtering, but derive it from items.
+  status String @default("OPEN") // OPEN, COMPLETED
+
+  ticketNumber Int @default(0) // Sequential per Org
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// TicketItem represents a single physical device
+model TicketItem {
+  id Int @id @default(autoincrement())
+
+  ticketId Int
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  status String @default("RECEIVED") // RECEIVED, SENT_TO_COMPANY, RECEIVED_FROM_COMPANY, RETURNED_TO_CUSTOMER
+
+  // Stage 1 Fields
+  serialNumber     String
+  isUnderWarranty  Boolean @default(false)
+  issueDescription String
+
+  // Stage 2: Outward to Company (Batching)
+  companyBatchId Int?
+  companyBatch   CompanyBatch? @relation(fields: [companyBatchId], references: [id], onDelete: SetNull)
+
+  // Stage 3: Inward from Company
+  dateReceivedFromCompany DateTime?
+  resolution              String? // REPAIRED, REPLACED, REJECTED
+  companyResolutionDescription String? // Notes on what was fixed/done
+  newSerialNumber         String?
+  repairCost              Float? // Cost to us
+
+  // Stage 4: Return to Customer
+  finalCost            Float? // Cost to customer
+  returnMethod         String? // HAND_ON, COURIER
+  returnTrackingNumber String? // For Courier
+  dateReturnedToCustomer DateTime? // Fixed date when item leaves us
+  customerReturnDescription String? // Notes for the customer (e.g. rejection reason)
+
+  userId Int // For easy filtering/ownership checks without joining Ticket
+  user   User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// CompanyBatch represents a shipment to a vendor
+model CompanyBatch {
+  id Int @id @default(autoincrement())
+
+  name String? // Optional descriptive name "Hikvision Batch Oct 10"
+
+  companyId Int
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  items TicketItem[]
+
+  status String @default("OPEN") // OPEN, SENT, CLOSED
+
+  courierName    String?
+  trackingNumber String?
+  dateSent       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Organization {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  subscriptionPlan String   @default("FREE") // FREE, PRO, YEARLY
+  subscriptionStatus String @default("ACTIVE")
+  subscriptionExpiry DateTime?
+
+  // Business Details
+  gstNumber String?
+  address   String?
+  phone     String?
+
+  members          OrganizationMember[]
+
+  // Data Relations
+  tickets          Ticket[]
+  customers        Customer[]
+  products         Product[]
+  companies        Company[]
+  ticketItems      TicketItem[]
+  companyBatches   CompanyBatch[]
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model OrganizationMember {
+  id             Int      @id @default(autoincrement())
+  role           String   @default("MEMBER") // OWNER, ADMIN, MEMBER
+  
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id])
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@unique([userId, organizationId])
+}
