@@ -4,6 +4,11 @@ import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { createTicket } from '@/app/actions/ticket';
 import { Trash2, Plus } from 'lucide-react';
+import ProductQuickAddModal from '@/components/ProductQuickAddModal';
+
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 const initialState = { message: '' };
 
@@ -13,12 +18,6 @@ type TicketItem = {
     issueDescription: string;
     isUnderWarranty: boolean;
 };
-
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-
-// ... (existing imports)
 
 export default function TicketForm({
     customers,
@@ -35,6 +34,11 @@ export default function TicketForm({
 
     const [customerId, setCustomerId] = useState<string>(initialCustomerId ? String(initialCustomerId) : '');
     const [receiptMethod, setReceiptMethod] = useState('HAND_ON');
+
+    // Local Products State (to append new ones)
+    const [localProducts, setLocalProducts] = useState(products);
+    const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+    const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
 
     // Items State
     const [items, setItems] = useState<TicketItem[]>([
@@ -62,22 +66,23 @@ export default function TicketForm({
         setItems(newItems);
     };
 
+    const openProductModal = (index: number) => {
+        setActiveItemIndex(index);
+        setIsProductModalOpen(true);
+    };
+
+    const handleProductCreated = (newProduct: any) => {
+        setLocalProducts([...localProducts, newProduct]);
+        if (activeItemIndex !== null) {
+            updateItem(activeItemIndex, 'productId', String(newProduct.id));
+        }
+    };
+
+
     const getReturnUrl = () => {
         const params = new URLSearchParams();
         if (customerId) params.set('customerId', customerId);
         return `/tickets/new?${params.toString()}`;
-    };
-
-    const selectStyle = {
-        width: '100%',
-        padding: '0.625rem 0.875rem',
-        borderRadius: 'var(--radius)',
-        border: '1px solid #94a3b8', // Slate-400 for better visibility
-        background: 'var(--background)',
-        color: 'var(--foreground)',
-        fontSize: '0.875rem',
-        lineHeight: '1.25rem',
-        outline: 'none'
     };
 
     return (
@@ -91,7 +96,7 @@ export default function TicketForm({
                         <select
                             name="customerId"
                             required
-                            style={selectStyle}
+                            className="input"
                             value={customerId}
                             onChange={(e) => setCustomerId(e.target.value)}
                         >
@@ -110,7 +115,7 @@ export default function TicketForm({
                         <select
                             name="receiptMethod"
                             required
-                            style={selectStyle}
+                            className="input"
                             value={receiptMethod}
                             onChange={(e) => setReceiptMethod(e.target.value)}
                         >
@@ -133,7 +138,7 @@ export default function TicketForm({
 
                     <div style={{ display: 'grid', gap: '1.5rem' }}>
                         {items.map((item, index) => (
-                            <div key={index} style={{ padding: '1.5rem', background: 'var(--accent)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', position: 'relative' }}>
+                            <div key={index} style={{ padding: '1.5rem', background: 'hsl(var(--secondary) / 0.5)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', position: 'relative' }}>
                                 {items.length > 1 && (
                                     <button
                                         type="button"
@@ -152,17 +157,21 @@ export default function TicketForm({
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--foreground)' }}>Product</label>
                                             <select
                                                 required
-                                                style={selectStyle}
+                                                className="input"
                                                 value={item.productId}
                                                 onChange={(e) => updateItem(index, 'productId', e.target.value)}
                                             >
                                                 <option value="">Select Product</option>
-                                                {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.brand}) {p.modelNumber ? `- ${p.modelNumber}` : ''}</option>)}
+                                                {localProducts.map(p => <option key={p.id} value={p.id}>{p.name} ({p.brand}) {p.modelNumber ? `- ${p.modelNumber}` : ''}</option>)}
                                             </select>
                                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
-                                                <Link href={`/products/new?returnTo=${encodeURIComponent(getReturnUrl())}`} style={{ color: 'var(--primary)', fontWeight: 500 }}>
-                                                    + Add New Product
-                                                </Link>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openProductModal(index)}
+                                                    style={{ color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                                                >
+                                                    + Add New Product (Quick)
+                                                </button>
                                             </div>
                                         </div>
                                         <div>
@@ -170,7 +179,7 @@ export default function TicketForm({
                                             <input
                                                 type="text"
                                                 required
-                                                style={selectStyle}
+                                                className="input"
                                                 value={item.serialNumber}
                                                 onChange={(e) => updateItem(index, 'serialNumber', e.target.value)}
                                                 placeholder="S/N"
@@ -184,7 +193,7 @@ export default function TicketForm({
                                         <input
                                             type="text"
                                             required
-                                            style={selectStyle}
+                                            className="input"
                                             value={item.issueDescription}
                                             onChange={(e) => updateItem(index, 'issueDescription', e.target.value)}
                                             placeholder="Describe the issue..."
@@ -197,7 +206,7 @@ export default function TicketForm({
                                             id={`warranty-${index}`}
                                             checked={item.isUnderWarranty}
                                             onChange={(e) => updateItem(index, 'isUnderWarranty', e.target.checked)}
-                                            style={{ width: '1rem', height: '1rem' }}
+                                            style={{ width: '1rem', height: '1rem', accentColor: 'var(--primary)' }}
                                         />
                                         <label htmlFor={`warranty-${index}`} style={{ fontSize: '0.875rem', fontWeight: 500 }}>Under Warranty?</label>
                                     </div>
@@ -223,6 +232,12 @@ export default function TicketForm({
                     </Button>
                 </div>
             </form>
+
+            <ProductQuickAddModal
+                isOpen={isProductModalOpen}
+                onClose={() => setIsProductModalOpen(false)}
+                onSuccess={handleProductCreated}
+            />
         </Card>
     );
 }

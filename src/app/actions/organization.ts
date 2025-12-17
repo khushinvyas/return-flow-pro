@@ -15,6 +15,8 @@ export async function updateOrganizationSettings(prevState: any, formData: FormD
     const address = formData.get('address') as string;
     const phone = formData.get('phone') as string;
 
+    const logo = formData.get('logo') as string;
+
     if (!name) {
         return { message: 'Organization name is required' };
     }
@@ -26,7 +28,8 @@ export async function updateOrganizationSettings(prevState: any, formData: FormD
                 name,
                 gstNumber,
                 address,
-                phone
+                phone,
+                ...(logo && logo.length > 0 ? { logoUrl: logo } : {})
             }
         });
 

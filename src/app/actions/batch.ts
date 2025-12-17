@@ -39,6 +39,7 @@ export async function createBatch(prevState: any, formData: FormData) {
     const courierName = formData.get('courierName') as string;
     const trackingNumber = formData.get('trackingNumber') as string;
     const itemIds = JSON.parse(formData.get('itemIds') as string);
+    const ticketId = formData.get('ticketId') ? parseInt(formData.get('ticketId') as string) : null;
 
     if (!companyId || !itemIds || itemIds.length === 0) {
         return { message: 'Company and at least one item are required' };
@@ -55,6 +56,9 @@ export async function createBatch(prevState: any, formData: FormData) {
                     status: 'SENT',
                     dateSent: new Date(),
                     userId: Number(userId)
+                },
+                include: {
+                    company: true
                 }
             });
 
@@ -69,6 +73,18 @@ export async function createBatch(prevState: any, formData: FormData) {
                     status: 'SENT_TO_COMPANY'
                 }
             });
+
+            // 3. Create Ticket Event (if ticketId is provided)
+            if (ticketId) {
+                await tx.ticketEvent.create({
+                    data: {
+                        ticketId: ticketId,
+                        userId: Number(userId),
+                        type: 'STATUS_CHANGE',
+                        description: `Dispatched ${itemIds.length} item(s) to ${batch.company.name}. Tracking: ${trackingNumber || 'N/A'}`
+                    }
+                });
+            }
         });
     } catch (e) {
         console.error(e);
@@ -77,5 +93,8 @@ export async function createBatch(prevState: any, formData: FormData) {
 
     revalidatePath('/outward');
     revalidatePath('/tickets');
+    if (ticketId) {
+        revalidatePath(`/tickets/${ticketId}`);
+    }
     return { message: 'success' };
 }

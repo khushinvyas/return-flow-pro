@@ -1,100 +1,118 @@
 .sidebar {
     width: 280px;
     height: 100vh;
-    background: var(--background);
-    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    padding: 1.5rem;
     position: fixed;
     left: 0;
     top: 0;
-    transition: all 0.3s ease;
+    z-index: 50;
+    /* Lower than print overlay (99999) */
+
+    /* Premium Glass Effect */
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-right: 1px solid hsl(var(--border) / 0.6);
+
+    transition: transform 0.3s ease;
 }
 
 .logo {
+    padding: 2rem 1.5rem;
     display: flex;
     align-items: center;
-    justify-content: center;
-    /* Center the logo image */
-    padding-bottom: 2rem;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--border);
+    justify-content: flex-start;
 }
 
 .nav {
+    flex: 1;
+    padding: 1rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    flex: 1;
+    overflow-y: auto;
 }
 
 .navLink {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
     border-radius: var(--radius);
-    color: var(--secondary-foreground);
+    color: hsl(var(--secondary-foreground));
     text-decoration: none;
     font-size: 0.9375rem;
     font-weight: 500;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
 }
 
 .navLink:hover {
-    background: var(--secondary);
-    color: var(--foreground);
+    background: hsl(var(--accent));
+    color: hsl(var(--foreground));
+    transform: translateX(4px);
 }
 
-/* Active state handling would go here or via inline styles/classes */
+.navLinkActive {
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.1), transparent);
+    color: hsl(var(--primary));
+    border-left: 3px solid hsl(var(--primary));
+    font-weight: 600;
+}
 
 .footer {
-    margin-top: auto;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border);
+    padding: 1.5rem;
+    border-top: 1px solid hsl(var(--border) / 0.6);
+    /* background: hsl(var(--secondary) / 0.3); */
 }
 
 .userProfile {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem;
+    gap: 1rem;
+    padding: 0.75rem;
     border-radius: var(--radius);
+    transition: background 0.2s ease;
     cursor: pointer;
-    transition: background 0.2s;
 }
 
 .userProfile:hover {
-    background: var(--secondary);
+    background: hsl(var(--accent));
 }
 
 .avatar {
-    width: 36px;
-    height: 36px;
-    background: var(--accent);
-    color: var(--accent-foreground);
-    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--hero-gradient);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: 0 4px 6px -1px hsl(var(--primary) / 0.2);
 }
 
 .userInfo {
     display: flex;
     flex-direction: column;
+    gap: 0.125rem;
+    overflow: hidden;
 }
 
 .userName {
     font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--foreground);
+    font-weight: 600;
+    color: hsl(var(--foreground));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .userRole {
     font-size: 0.75rem;
-    color: var(--secondary-foreground);
-    opacity: 0.8;
+    color: hsl(var(--secondary-foreground));
 }

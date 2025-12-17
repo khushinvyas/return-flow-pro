@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -26,6 +27,7 @@ model User {
   tickets        Ticket[]
   ticketItems    TicketItem[]
   companyBatches CompanyBatch[]
+  events         TicketEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -85,6 +87,21 @@ model Product {
 }
 
 // Ticket represents the Customer Interaction (Receipt)
+
+model TicketEvent {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  
+  type      String   // STATUS_CHANGE, INFO, WARNING, ERROR
+  description String
+  
+  createdAt DateTime @default(now())
+}
+
 model Ticket {
   id Int @id @default(autoincrement())
 
@@ -96,6 +113,7 @@ model Ticket {
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   items TicketItem[]
+  events TicketEvent[]
 
   // Stage 1: Inward (Ticket Level)
   receiptMethod String // HAND_ON, COURIER
@@ -198,6 +216,7 @@ model Organization {
   gstNumber String?
   address   String?
   phone     String?
+  logoUrl   String? // Base64 encoded logo
 
   members          OrganizationMember[]
 

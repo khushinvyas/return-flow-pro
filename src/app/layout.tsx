@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "../components/Sidebar";
-import PageTransition from "../components/PageTransition";
 import { ThemeProvider } from "../components/ThemeProvider";
+import Shell from "../components/Shell";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -19,6 +19,7 @@ import ImpersonationBanner from "../components/ImpersonationBanner";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
+// ... (imports are preserved in logic below, this is just the function body replacement in logic)
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -44,36 +45,12 @@ export default async function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <div className="layout-wrapper" style={{ display: 'flex', minHeight: '100vh', background: 'hsl(var(--background))' }}>
-            <Sidebar />
-            <main className="main-content" style={{
-              marginLeft: '280px',
-              width: 'calc(100% - 280px)',
-              minHeight: '100vh',
-              padding: '2rem',
-              position: 'relative',
-              background: 'hsl(var(--background))',
-              paddingTop: impersonatingOrgName ? '4rem' : '2rem' // Adjust for banner
-            }}>
-              {impersonatingOrgName && <ImpersonationBanner orgName={impersonatingOrgName} />}
-
-              {/* Background Gradient Mesh (Optional nice touch) */}
-              <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                zIndex: 0,
-                pointerEvents: 'none',
-                background: 'radial-gradient(circle at 100% 0%, hsla(var(--primary), 0.05) 0%, transparent 50%), radial-gradient(circle at 0% 100%, hsla(var(--accent), 0.05) 0%, transparent 50%)'
-              }} />
-
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <PageTransition>{children}</PageTransition>
-              </div>
-            </main>
-          </div>
+          <Shell
+            sidebar={<Sidebar />}
+            banner={impersonatingOrgName ? <ImpersonationBanner orgName={impersonatingOrgName} /> : null}
+          >
+            {children}
+          </Shell>
         </ThemeProvider>
       </body>
     </html>

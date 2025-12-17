@@ -66,16 +66,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                         type="text"
                         placeholder="Search products..."
                         defaultValue={query}
-                        style={{
-                            width: '100%',
-                            padding: '0.75rem 0.75rem 0.75rem 3rem',
-                            border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius)',
-                            fontSize: '0.9375rem',
-                            background: 'var(--background)',
-                            color: 'var(--foreground)',
-                            outline: 'none'
-                        }}
+                        className="input"
+                        style={{ paddingLeft: '3rem' }}
                     />
                 </form>
             </Card>

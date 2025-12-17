@@ -6,7 +6,9 @@ import { prisma } from '@/lib/db';
 const SECRET_KEY = process.env.JWT_SECRET || 'dev-secret-key-change-me';
 // ... (rest of file until getSession)
 
-export async function getSession() {
+import { cache } from 'react';
+
+export const getSession = cache(async function () {
     const cookieStore = await cookies();
     const session = cookieStore.get('session')?.value;
     if (!session) return null;
@@ -29,9 +31,11 @@ export async function getSession() {
             return null;
         }
     } catch (e) {
-        // Fallback or error logging
-        console.error('Session DB check failed:', e);
-        return null;
+        // Fallback: If DB is unreachable, we trust the Signed JWT (Fail Open for Availability)
+        console.error('Session DB check failed (Soft Fail - Trusting Token):', e);
+        // We continue execution to return the payload. 
+        // Security Note: This means revoked tokens might work during DB outages, 
+        // but it prevents mass logouts during transient connection issues.
     }
 
     return {
@@ -42,7 +46,7 @@ export async function getSession() {
         isImpersonating: !!payload.impersonatedOrgId,
         items: payload.items // Keep original items if needed, or rely on payload structure
     };
-}
+});
 const key = new TextEncoder().encode(SECRET_KEY);
 
 export async function hashPassword(password: string): Promise<string> {

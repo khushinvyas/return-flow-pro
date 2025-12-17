@@ -1,76 +1,507 @@
 'use client';
 
-import { useActionState, useState } from 'react';
-import Link from 'next/link';
+import { useActionState, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { updateItemStage3, updateItemStage4, undoBatchItem } from '@/app/actions/ticket';
 import { createBatch } from '@/app/actions/batch';
-import { Printer, PackageCheck, UserCheck, ChevronDown, ChevronUp, Truck } from 'lucide-react';
+import {
+    Printer, PackageCheck, UserCheck, ChevronDown, ChevronUp, Truck, User,
+    MapPin, Phone, Mail, Clock, Calendar, AlertCircle, CheckCircle2,
+    FileText, History, Package, Sparkles, ExternalLink, Copy, Shield, Zap, Plus
+} from 'lucide-react';
 
-import { Card, CardContent } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import StatusBadge from '@/components/StatusBadge';
 import { Input } from '@/components/ui/Input';
+import { Separator } from '@/components/ui/separator';
+
+// ============================================================================
+// STYLES (Refactored for Dark Mode with CSS Variables)
+// ============================================================================
+
+const styles = {
+    // Hero Header
+    heroContainer: {
+        position: 'relative' as const,
+        overflow: 'hidden',
+        borderRadius: 'var(--radius)',
+        background: 'var(--hero-gradient)',
+        padding: '32px',
+        boxShadow: 'var(--shadow-colored)',
+        marginBottom: '32px',
+    },
+    heroPattern: {
+        position: 'absolute' as const,
+        inset: 0,
+        opacity: 0.1,
+        pointerEvents: 'none' as const,
+    },
+    heroContent: {
+        position: 'relative' as const,
+        zIndex: 10,
+    },
+    ticketBadge: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '6px 12px',
+        background: 'rgba(255, 255, 255, 0.1)',
+        backdropFilter: 'blur(8px)',
+        borderRadius: '9999px',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        marginBottom: '16px',
+    },
+    pulseDot: {
+        width: '8px',
+        height: '8px',
+        borderRadius: '50%',
+        background: '#34d399',
+        animation: 'pulse 2s infinite',
+    },
+    heroTitle: {
+        fontSize: '32px',
+        fontWeight: 700,
+        color: 'white',
+        letterSpacing: '-0.5px',
+        marginBottom: '16px',
+    },
+    heroMeta: {
+        display: 'flex',
+        flexWrap: 'wrap' as const,
+        gap: '16px',
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontSize: '14px',
+    },
+    statusCard: {
+        padding: '10px 20px',
+        background: 'hsl(var(--card))',
+        borderRadius: '12px',
+        boxShadow: 'var(--shadow-lg)',
+        display: 'inline-block',
+        marginLeft: '16px',
+    },
+    // Grid Layout
+    gridContainer: {
+        display: 'grid',
+        gridTemplateColumns: '300px 1fr 300px',
+        gap: '24px',
+        alignItems: 'start',
+    },
+    // Cards
+    sideCard: {
+        background: 'hsl(var(--card))',
+        borderRadius: 'var(--radius)',
+        boxShadow: 'var(--shadow)',
+        overflow: 'hidden',
+        border: '1px solid hsl(var(--border))',
+    },
+    cardAccent: {
+        height: '4px',
+        background: 'var(--hero-gradient)',
+    },
+    cardHeader: {
+        padding: '16px 20px 12px',
+        borderBottom: '1px solid hsl(var(--border))',
+    },
+    cardTitle: {
+        fontSize: '11px',
+        fontWeight: 700,
+        textTransform: 'uppercase' as const,
+        letterSpacing: '0.1em',
+        color: 'hsl(var(--secondary-foreground))',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+    },
+    cardContent: {
+        padding: '20px',
+    },
+    // Customer Avatar
+    avatar: {
+        width: '48px',
+        height: '48px',
+        borderRadius: '12px',
+        background: 'var(--hero-gradient)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontWeight: 700,
+        fontSize: '16px',
+        flexShrink: 0,
+    },
+    // Contact Button
+    contactButton: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '10px 12px',
+        borderRadius: '10px',
+        transition: 'background 0.2s',
+        textDecoration: 'none',
+        color: 'hsl(var(--foreground))',
+    },
+    contactIcon: {
+        width: '32px',
+        height: '32px',
+        borderRadius: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'hsl(var(--secondary))',
+    },
+    // Product Card
+    productCard: {
+        background: 'hsl(var(--card))',
+        borderRadius: 'var(--radius)',
+        boxShadow: 'var(--shadow)',
+        overflow: 'hidden',
+        border: '1px solid hsl(var(--border))',
+        marginBottom: '16px',
+    },
+    infoRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px 0',
+        borderBottom: '1px solid hsl(var(--border))',
+    },
+    infoLabel: {
+        fontSize: '14px',
+        color: 'hsl(var(--secondary-foreground))',
+    },
+    '@media (max-width: 1024px)': {
+        gridContainer: {
+            gridTemplateColumns: '1fr',
+        },
+    },
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 export default function TicketDetail({ ticket, companies }: { ticket: any, companies: any[] }) {
-
     return (
-        <div style={{ display: 'grid', gap: '2rem' }}>
-            {/* Ticket Header Info */}
-            <Card>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Ticket #{ticket.ticketNumber > 0 ? ticket.ticketNumber : ticket.id}</h2>
-                        {/* Note: Button component with href renders a Link. Link doesn't natively support target="_blank" without passing it. 
-                            My Button component forwards props, but TS might complain if interface doesn't allow it. 
-                            I'll use a standard a tag inside if needed, or just let it be. 
-                            Actually, my Button component as written in previous step:
-                            interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> { href?: string; ... }
-                            It does NOT extend AnchorHTMLAttributes. I should fix that in Button.tsx or just ignore for now.
-                            I will just use the new UI components.
-                        */}
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <Button href={`/tickets/${ticket.id}/print?type=INWARD`} variant="secondary" size="sm" target="_blank">
-                                <Printer size={16} style={{ marginRight: '0.5rem' }} /> Inward Receipt
-                            </Button>
-                            <Button href={`/tickets/${ticket.id}/print?type=OUTWARD`} variant="outline" size="sm" target="_blank">
-                                <Printer size={16} style={{ marginRight: '0.5rem' }} /> Return Invoice
-                            </Button>
+        <div style={{ paddingBottom: '48px' }}>
+            {/* HER0 HEADER */}
+            <div style={styles.heroContainer}>
+                {/* Background Pattern */}
+                <div style={styles.heroPattern}>
+                    <div style={{
+                        position: 'absolute', top: 0, left: 0,
+                        width: '300px', height: '300px', background: 'white', borderRadius: '50%',
+                        filter: 'blur(80px)', transform: 'translate(-50%, -50%)', opacity: 0.2
+                    }} />
+                    <div style={{
+                        position: 'absolute', bottom: 0, right: 0,
+                        width: '400px', height: '400px', background: 'white', borderRadius: '50%',
+                        filter: 'blur(80px)', transform: 'translate(30%, 30%)', opacity: 0.2
+                    }} />
+                </div>
+
+                {/* Content */}
+                <div style={styles.heroContent}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
+                        <div>
+                            <div style={styles.ticketBadge}>
+                                <span style={styles.pulseDot} />
+                                <span style={{ fontSize: '14px', fontFamily: 'monospace', fontWeight: 600, color: 'white' }}>
+                                    Ticket #{ticket.ticketNumber || ticket.id}
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+                                <h1 style={styles.heroTitle}>Service Request</h1>
+                                <div style={styles.statusCard}>
+                                    <Badge
+                                        variant={ticket.status === 'COMPLETED' ? 'success' : 'error'}
+                                        style={{ fontSize: '14px', padding: '6px 16px', textTransform: 'capitalize' }}
+                                    >
+                                        {ticket.status.toLowerCase().replace('_', ' ')}
+                                    </Badge>
+                                </div>
+                            </div>
+                            <div style={styles.heroMeta}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Clock size={14} />
+                                    <span>Last updated {formatDate(ticket.updatedAt)}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Package size={14} />
+                                    <span>{ticket.items.length} item{ticket.items.length !== 1 ? 's' : ''}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <User size={14} />
+                                    <span>{ticket.customer.name}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            {['INWARD', 'OUTWARD'].map(type => (
+                                <a key={type}
+                                    href={`/tickets/${ticket.id}/print?type=${type}`}
+                                    target="_blank"
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                        padding: '10px 16px',
+                                        background: 'rgba(255, 255, 255, 0.1)',
+                                        backdropFilter: 'blur(8px)',
+                                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                                        borderRadius: '10px',
+                                        color: 'white', fontSize: '14px', fontWeight: 500,
+                                        textDecoration: 'none', transition: 'all 0.2s',
+                                    }}
+                                >
+                                    {type === 'INWARD' ? <Printer size={16} /> : <FileText size={16} />}
+                                    {type === 'INWARD' ? 'Receipt' : 'Invoice'}
+                                </a>
+                            ))}
                         </div>
                     </div>
-                    <Badge variant={ticket.status === 'OPEN' ? 'blue' : 'default'}>
-                        {ticket.status}
-                    </Badge>
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                    <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--secondary-foreground)' }}>Customer</div>
-                        <div style={{ fontWeight: 500 }}>{ticket.customer.name}</div>
-                        <div style={{ fontSize: '0.875rem' }}>{ticket.customer.phone}</div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--secondary-foreground)' }}>Received by</div>
-                        <div style={{ fontWeight: 500 }}>{ticket.receiptMethod === 'HAND_ON' ? 'Hand-on' : 'Courier'}</div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--secondary-foreground)' }}>Items</div>
-                        <div style={{ fontWeight: 500 }}>{ticket.items.length} Product(s)</div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--secondary-foreground)' }}>Created</div>
-                        <div style={{ fontWeight: 500 }}>{formatDate(ticket.createdAt)}</div>
-                    </div>
-                </div>
-            </Card>
-
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Ticket Items</h3>
-
-            <div style={{ display: 'grid', gap: '1.5rem' }}>
-                {ticket.items.map((item: any) => (
-                    <TicketItemCard key={item.id} item={item} ticketId={ticket.id} companies={companies} />
-                ))}
             </div>
+
+            {/* GRID CONTENT */}
+            <div style={styles.gridContainer}>
+                {/* LEFT COLUMN */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* Customer Card */}
+                    <div style={styles.sideCard}>
+                        <div style={styles.cardAccent} />
+                        <div style={styles.cardHeader}>
+                            <div style={styles.cardTitle}><User size={14} /> Customer</div>
+                        </div>
+                        <div style={styles.cardContent}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
+                                <div style={styles.avatar}>{getInitials(ticket.customer.name)}</div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <h3 style={{ fontWeight: 600, color: 'hsl(var(--foreground))', marginBottom: '2px' }}>{ticket.customer.name}</h3>
+                                    <p style={{ fontSize: '12px', color: 'hsl(var(--secondary-foreground))' }}>Customer</p>
+                                </div>
+                            </div>
+                            <Separator className="my-4" />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {ticket.customer.email && (
+                                    <a href={`mailto:${ticket.customer.email}`} style={styles.contactButton}>
+                                        <div style={styles.contactIcon}><Mail size={14} className="text-blue-500" /></div>
+                                        <span style={{ fontSize: '14px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ticket.customer.email}</span>
+                                    </a>
+                                )}
+                                <a href={`tel:${ticket.customer.phone}`} style={styles.contactButton}>
+                                    <div style={styles.contactIcon}><Phone size={14} className="text-green-500" /></div>
+                                    <span style={{ fontSize: '14px', flex: 1 }}>{ticket.customer.phone}</span>
+                                </a>
+                            </div>
+                            <Separator className="my-4" />
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                <div style={styles.contactIcon}><MapPin size={14} className="text-orange-500" /></div>
+                                <p style={{ fontSize: '14px', color: 'hsl(var(--foreground))', lineHeight: 1.6 }}>{ticket.customer.address || "No address"}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Reception Info */}
+                    <div style={styles.sideCard}>
+                        <div style={styles.cardHeader}>
+                            <div style={styles.cardTitle}><FileText size={14} /> Reception Info</div>
+                        </div>
+                        <div style={styles.cardContent}>
+                            <div style={styles.infoRow}>
+                                <span style={styles.infoLabel}>Received Method</span>
+                                <Badge variant={ticket.receiptMethod === 'HAND_ON' ? 'blue' : 'purple'}>
+                                    {ticket.receiptMethod === 'HAND_ON' ? '🤝 Hand-on' : '📦 Courier'}
+                                </Badge>
+                            </div>
+                            <div style={styles.infoRow}>
+                                <span style={styles.infoLabel}>Received By</span>
+                                <span style={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>Admin</span>
+                            </div>
+                            <div style={{ ...styles.infoRow, borderBottom: 'none' }}>
+                                <span style={styles.infoLabel}>Created</span>
+                                <span style={{ fontWeight: 600, color: 'hsl(var(--foreground))', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Calendar size={12} style={{ color: 'hsl(var(--secondary-foreground))' }} />
+                                    {formatDate(ticket.createdAt)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* CENTER COLUMN: Items */}
+                <div>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'hsl(var(--foreground))', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px', background: 'hsl(var(--secondary))' }}>
+                                <Package size={16} style={{ color: 'hsl(var(--primary))' }} />
+                            </span>
+                            Product Items
+                            <span style={{ padding: '4px 10px', background: 'hsl(var(--secondary))', borderRadius: '99px', fontSize: '14px', fontWeight: 500, color: 'hsl(var(--secondary-foreground))' }}>
+                                {ticket.items.length}
+                            </span>
+                        </h2>
+                    </div>
+
+                    {ticket.items.map((item: any) => (
+                        <TicketItemCard key={item.id} item={item} ticketId={ticket.id} companies={companies} />
+                    ))}
+
+                    {ticket.items.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '64px 32px', border: '2px dashed hsl(var(--border))', borderRadius: '16px', background: 'hsl(var(--card))' }}>
+                            <p style={{ fontWeight: 500, color: 'hsl(var(--secondary-foreground))' }}>No items yet</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* RIGHT COLUMN: Timeline */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div style={styles.sideCard}>
+                        <div style={{ ...styles.cardHeader, borderBottom: '1px solid hsl(var(--border))' }}>
+                            <div style={styles.cardTitle}><History size={14} /> Activity Timeline</div>
+                        </div>
+                        <div style={{ ...styles.cardContent, maxHeight: '500px', overflowY: 'auto' }}>
+                            {ticket.events && ticket.events.length > 0 ? (
+                                <div style={{ position: 'relative' }}>
+                                    <div style={{
+                                        position: 'absolute', left: '11px', top: '8px', bottom: '8px', width: '2px',
+                                        background: 'linear-gradient(180deg, hsl(var(--primary) / 0.3), hsl(var(--border)), transparent)'
+                                    }} />
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        {ticket.events.map((event: any, idx: number) => (
+                                            <TimelineItem key={event.id} event={event} isFirst={idx === 0} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '32px 16px', color: 'hsl(var(--secondary-foreground))' }}>
+                                    <p>No activity yet</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <style jsx global>{`
+                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+                @media (max-width: 1200px) { [style*="gridTemplateColumns: 300px"] { grid-template-columns: 1fr !important; } }
+            `}</style>
+        </div>
+    );
+}
+
+// ============================================================================
+// SUB-COMPONENTS
+// ============================================================================
+
+function TimelineItem({ event, isFirst }: { event: any; isFirst: boolean }) {
+    const getEventConfig = (type: string) => {
+        switch (type) {
+            case 'STATUS_CHANGE': return { icon: <Zap size={12} />, color: 'hsl(var(--primary))', bgColor: 'hsl(var(--primary) / 0.1)', label: 'Status Update' };
+            case 'CREATED': return { icon: <Sparkles size={12} />, color: 'hsl(var(--success))', bgColor: 'hsl(var(--success) / 0.1)', label: 'Created' };
+            default: return { icon: <AlertCircle size={12} />, color: 'hsl(var(--secondary-foreground))', bgColor: 'hsl(var(--secondary))', label: 'Event' };
+        }
+    };
+    const config = getEventConfig(event.type);
+    return (
+        <div style={{ position: 'relative', paddingLeft: '32px' }}>
+            <div style={{
+                position: 'absolute', left: 0, top: '4px', width: '24px', height: '24px', borderRadius: '50%',
+                background: config.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', boxShadow: '0 0 0 4px hsl(var(--card))'
+            }}>{config.icon}</div>
+            <div style={{ padding: '12px', borderRadius: '12px', background: config.bgColor }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'hsl(var(--foreground))' }}>{config.label}</span>
+                    <span style={{ fontSize: '10px', color: 'hsl(var(--secondary-foreground))' }}>{formatDate(event.createdAt, true)}</span>
+                </div>
+                {event.description && <p style={{ fontSize: '12px', color: 'hsl(var(--foreground))' }}>{event.description}</p>}
+                {event.user && <div style={{ fontSize: '10px', color: 'hsl(var(--secondary-foreground))', marginTop: '4px' }}>{event.user.name}</div>}
+            </div>
+        </div>
+    );
+}
+
+function TicketItemCard({ item, ticketId, companies }: { item: any, ticketId: number, companies: any[] }) {
+    const [expanded, setExpanded] = useState(false);
+    const hasActions = ['RECEIVED', 'SENT_TO_COMPANY', 'RECEIVED_FROM_COMPANY'].includes(item.status);
+    return (
+        <div style={styles.productCard}>
+            <div style={{ height: '4px', background: 'var(--hero-gradient)' }} />
+            <div style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                        <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: 'hsl(var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Package size={24} className="text-gray-500" />
+                        </div>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <h3 style={{ fontWeight: 700, fontSize: '18px', color: 'hsl(var(--foreground))' }}>{item.product.name}</h3>
+                                <Badge variant="outline">{item.product.brand}</Badge>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--secondary-foreground))' }}>S/N</span>
+                                <code style={{ fontSize: '14px', background: 'hsl(var(--secondary))', padding: '2px 8px', borderRadius: '4px' }}>{item.serialNumber}</code>
+                            </div>
+                        </div>
+                    </div>
+                    <StatusBadge status={item.status} />
+                </div>
+                <div style={{ padding: '16px', borderRadius: '12px', background: 'hsl(var(--secondary))', marginBottom: '20px', border: '1px solid hsl(var(--border))' }}>
+                    <p style={{ fontSize: '14px', color: 'hsl(var(--foreground))' }}>{item.issueDescription}</p>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: item.isUnderWarranty ? 'hsl(var(--success) / 0.1)' : 'hsl(var(--error) / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Shield size={18} style={{ color: item.isUnderWarranty ? 'hsl(var(--success))' : 'hsl(var(--error))' }} />
+                        </div>
+                        <div>
+                            <p style={{ fontSize: '12px', color: 'hsl(var(--secondary-foreground))' }}>Warranty</p>
+                            <p style={{ fontSize: '14px', fontWeight: 600, color: item.isUnderWarranty ? 'hsl(var(--success))' : 'hsl(var(--error))' }}>{item.isUnderWarranty ? 'Active' : 'Expired'}</p>
+                        </div>
+                    </div>
+                    {item.companyBatch && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'hsl(var(--primary) / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Truck size={18} style={{ color: 'hsl(var(--primary))' }} />
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '12px', color: 'hsl(var(--secondary-foreground))' }}>Vendor</p>
+                                <p style={{ fontSize: '14px', fontWeight: 600, color: 'hsl(var(--foreground))' }}>{item.companyBatch.company.name}</p>
+                                <p style={{ fontSize: '11px', color: 'hsl(var(--secondary-foreground))', marginBottom: '4px' }}>
+                                    {item.companyBatch.courierName
+                                        ? `via ${item.companyBatch.courierName} ${item.companyBatch.trackingNumber ? `(${item.companyBatch.trackingNumber})` : ''}`
+                                        : 'via Hand-on'
+                                    }
+                                </p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                                    {item.status === 'SENT_TO_COMPANY' && <UndoBatchItemForm item={item} ticketId={ticketId} />}
+                                    <a href={`/tickets/${ticketId}/print?type=CHALLAN&companyId=${item.companyBatch.companyId}`} target="_blank" style={{ fontSize: '10px', fontWeight: 600, color: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <Printer size={10} /> Challan
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+            {hasActions && (
+                <div style={{ borderTop: '1px solid hsl(var(--border))' }}>
+                    <button onClick={() => setExpanded(!expanded)} style={{ width: '100%', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', color: 'hsl(var(--secondary-foreground))', fontWeight: 600 }}>
+                        <span style={{ display: 'flex', gap: '8px' }}><Sparkles size={14} /> {expanded ? 'Hide' : 'Action'}</span>
+                        <ChevronDown size={16} style={{ transform: expanded ? 'rotate(180deg)' : 'none' }} />
+                    </button>
+                    {expanded && (
+                        <div style={{ padding: '0 24px 24px' }}>
+                            {item.status === 'RECEIVED' && <SendToCompanyForm item={item} ticketId={ticketId} companies={companies} />}
+                            {item.status === 'SENT_TO_COMPANY' && <ReceiveFromCompanyForm item={item} ticketId={ticketId} />}
+                            {item.status === 'RECEIVED_FROM_COMPANY' && <ReturnToCustomerForm item={item} ticketId={ticketId} />}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
@@ -79,181 +510,74 @@ function SendToCompanyForm({ item, ticketId, companies }: { item: any, ticketId:
     const [state, action, isPending] = useActionState(createBatch, { message: '' });
     const searchParams = useSearchParams();
     const initialCompanyId = searchParams.get('initialCompanyId');
+    const [selectedCompanyId, setSelectedCompanyId] = useState(initialCompanyId || '');
+
+    // Sync with URL if user returns with a new company ID
+    useEffect(() => {
+        if (initialCompanyId) {
+            setSelectedCompanyId(initialCompanyId);
+        }
+    }, [initialCompanyId]);
 
     return (
-        <form action={action} style={{ display: 'grid', gap: '1rem' }}>
+        <form action={action} style={{ padding: '20px', background: 'hsl(var(--secondary))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
             <input type="hidden" name="itemIds" value={JSON.stringify([item.id])} />
-            <h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Truck size={18} /> Send to Company</h5>
-            <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Select Company</label>
-                <select
-                    name="companyId"
-                    required
-                    defaultValue={initialCompanyId || ''}
-                    className="input"
-                    style={{ width: '100%', padding: '0.625rem 0.875rem', borderRadius: 'var(--radius)', border: '1px solid #94a3b8', background: 'var(--background)', color: 'var(--foreground)' }}
-                >
-                    <option value="">Select Vendor...</option>
-                    {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
-                    <Link href={`/companies/new?returnTo=${encodeURIComponent(`/tickets/${ticketId}`)}`} style={{ color: 'var(--primary)', fontWeight: 500 }}>
-                        + Add New Company
-                    </Link>
+            <input type="hidden" name="ticketId" value={ticketId} />
+            <h5 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--primary))', marginBottom: '16px' }}>
+                <Truck size={16} /> Send to Service Center
+            </h5>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <select
+                        name="companyId"
+                        required
+                        value={selectedCompanyId}
+                        onChange={(e) => setSelectedCompanyId(e.target.value)}
+                        className="input"
+                        style={{ flex: 1 }}
+                    >
+                        <option value="">Select Vendor...</option>
+                        {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <Button
+                        href={`/companies/new?returnTo=/tickets/${ticketId}`}
+                        title="Add New Vendor"
+                        style={{ padding: '0 12px' }}
+                    >
+                        <Plus size={16} />
+                    </Button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <Input name="courierName" placeholder="Courier Name" />
+                    <Input name="trackingNumber" placeholder="Tracking No." />
                 </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <Input name="courierName" label="Courier Name" fullWidth />
-                <Input name="trackingNumber" label="Tracking No." fullWidth />
-            </div>
-            <Button type="submit" disabled={isPending} isLoading={isPending} style={{ justifySelf: 'start' }}>
-                Mark as Sent
-            </Button>
+            <Button type="submit" disabled={isPending} isLoading={isPending} style={{ width: '100%', marginTop: '16px' }}>Dispatch Item</Button>
         </form>
-    );
-}
-
-function TicketItemCard({ item, ticketId, companies }: { item: any, ticketId: number, companies: any[] }) {
-    const [expanded, setExpanded] = useState(false);
-
-    // Determines if actions are available
-    const hasActions = ['RECEIVED', 'SENT_TO_COMPANY', 'RECEIVED_FROM_COMPANY'].includes(item.status);
-
-    const statusVariantMap: any = {
-        'RECEIVED': 'blue',
-        'SENT_TO_COMPANY': 'warning',
-        'RECEIVED_FROM_COMPANY': 'purple',
-        'RETURNED_TO_CUSTOMER': 'success'
-    };
-
-    return (
-        <Card style={{ borderLeft: `4px solid ${getStatusColor(item.status)}` }}>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-                {/* Header: Product & Status */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                        <h4 style={{ fontSize: '1.125rem', fontWeight: 600 }}>{item.product.brand} {item.product.name}</h4>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>Model: {item.product.modelNumber || 'N/A'} • S/N: {item.serialNumber}</div>
-                    </div>
-                    <Badge variant={statusVariantMap[item.status] || 'default'}>
-                        {formatStatus(item.status)}
-                    </Badge>
-                </div>
-
-                <hr style={{ border: 0, borderTop: '1px solid var(--border)' }} />
-
-                {/* Info Fields */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.875rem' }}>
-                    <div>
-                        <div style={{ color: 'var(--secondary-foreground)' }}>Issue</div>
-                        <div>{item.issueDescription}</div>
-                    </div>
-                    <div>
-                        <div style={{ color: 'var(--secondary-foreground)' }}>Warranty</div>
-                        <div>{item.isUnderWarranty ? 'Yes' : 'No'}</div>
-                    </div>
-                    {item.companyBatch && (
-                        <div>
-                            <div style={{ color: 'var(--secondary-foreground)' }}>Vendor Info</div>
-                            <div>
-                                Sent to <strong>{item.companyBatch.company.name}</strong><br />
-                                on {formatDate(item.companyBatch.dateSent)}
-                                <div style={{ marginTop: '0.25rem' }}>
-                                    <Link href={`/companies/batches/${item.companyBatch.id}/print`} target="_blank" style={{ fontSize: '0.75rem', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                        <Printer size={12} /> Print Challan
-                                    </Link>
-                                </div>
-                            </div>
-                            {item.status === 'SENT_TO_COMPANY' && (
-                                <div style={{ marginTop: '0.25rem' }}>
-                                    <UndoBatchItemForm item={item} ticketId={ticketId} />
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    {item.resolution && (
-                        <div>
-                            <div style={{ color: 'var(--secondary-foreground)' }}>Resolution</div>
-                            <div>{item.resolution} {item.newSerialNumber ? `(New S/N: ${item.newSerialNumber})` : ''}</div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Actions Section */}
-                {hasActions && (
-                    <div style={{ marginTop: '0.5rem' }}>
-                        <button
-                            onClick={() => setExpanded(!expanded)}
-                            style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', fontWeight: 500, padding: 0 }}
-                        >
-                            {expanded ? (
-                                <>Hide Actions <ChevronUp size={16} /></>
-                            ) : (
-                                <>Update Status <ChevronDown size={16} /></>
-                            )}
-                        </button>
-
-                        {expanded && (
-                            <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--secondary)', borderRadius: 'var(--radius)' }}>
-                                {item.status === 'RECEIVED' && <SendToCompanyForm item={item} ticketId={ticketId} companies={companies} />}
-                                {item.status === 'SENT_TO_COMPANY' && <ReceiveFromCompanyForm item={item} ticketId={ticketId} />}
-                                {item.status === 'RECEIVED_FROM_COMPANY' && <ReturnToCustomerForm item={item} ticketId={ticketId} />}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        </Card>
     );
 }
 
 function ReceiveFromCompanyForm({ item, ticketId }: { item: any, ticketId: number }) {
     const [state, action, isPending] = useActionState(updateItemStage3, { message: '' });
     const [resolution, setResolution] = useState('REPAIRED');
-
     return (
-        <form action={action} style={{ display: 'grid', gap: '1rem' }}>
+        <form action={action} style={{ padding: '20px', background: 'hsl(var(--secondary))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
             <input type="hidden" name="itemId" value={item.id} />
             <input type="hidden" name="ticketId" value={ticketId} />
-            <h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}><PackageCheck size={18} /> Receive from Company</h5>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Resolution</label>
-                    <select
-                        name="resolution"
-                        value={resolution}
-                        onChange={(e) => setResolution(e.target.value)}
-                        required
-                        className="input"
-                        style={{ width: '100%', padding: '0.5rem' }}
-                    >
-                        <option value="REPAIRED">Repaired</option>
-                        <option value="REPLACED">Replaced</option>
-                        <option value="REJECTED">Rejected</option>
-                    </select>
-                </div>
-                <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Repair Cost</label>
-                    <input name="repairCost" type="number" step="0.01" className="input" style={{ width: '100%', padding: '0.5rem' }} />
-                </div>
+            <h5 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--primary))', marginBottom: '16px' }}>
+                <PackageCheck size={16} /> Process Vendor Return
+            </h5>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <select name="resolution" value={resolution} onChange={(e) => setResolution(e.target.value)} className="input">
+                    <option value="REPAIRED">✓ Repaired</option>
+                    <option value="REPLACED">↻ Replaced</option>
+                    <option value="REJECTED">✗ Rejected</option>
+                </select>
+                <Input name="repairCost" type="number" step="0.01" placeholder="Cost" />
             </div>
-
-            {resolution === 'REPLACED' && (
-                <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem' }}>New Serial Number (Required)</label>
-                    <input name="newSerialNumber" type="text" className="input" required style={{ width: '100%', padding: '0.5rem' }} />
-                </div>
-            )}
-
-            <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Description (What was fixed?)</label>
-                <textarea name="companyResolutionDescription" className="input" style={{ width: '100%', padding: '0.5rem', minHeight: '80px' }} placeholder="e.g. Replaced motherboard, Updated firmware..." />
-            </div>
-
-            <button type="submit" disabled={isPending} className="btn btn-primary" style={{ justifySelf: 'start' }}>
-                {isPending ? 'Saving...' : 'Mark as Received'}
-            </button>
+            {resolution === 'REPLACED' && <Input name="newSerialNumber" placeholder="New Serial Number" required className="mb-4" />}
+            <textarea name="companyResolutionDescription" className="input" style={{ minHeight: '80px' }} placeholder="Notes..." />
+            <Button type="submit" disabled={isPending} isLoading={isPending} style={{ width: '100%', marginTop: '16px' }}>Complete Intake</Button>
         </form>
     );
 }
@@ -261,101 +585,48 @@ function ReceiveFromCompanyForm({ item, ticketId }: { item: any, ticketId: numbe
 function ReturnToCustomerForm({ item, ticketId }: { item: any, ticketId: number }) {
     const [state, action, isPending] = useActionState(updateItemStage4, { message: '' });
     const [returnMethod, setReturnMethod] = useState('HAND_ON');
-
     return (
-        <form action={action} style={{ display: 'grid', gap: '1rem' }}>
+        <form action={action} style={{ padding: '20px', background: 'hsl(var(--secondary))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
             <input type="hidden" name="itemId" value={item.id} />
             <input type="hidden" name="ticketId" value={ticketId} />
-            <h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}><UserCheck size={18} /> Return to Customer</h5>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Return Method</label>
-                    <select
-                        name="returnMethod"
-                        value={returnMethod}
-                        onChange={(e) => setReturnMethod(e.target.value)}
-                        className="input"
-                        style={{ width: '100%', padding: '0.5rem' }}
-                    >
-                        <option value="HAND_ON">Hand-on (In Store)</option>
-                        <option value="COURIER">Courier</option>
-                    </select>
-                </div>
-                <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Final Charges (Bill)</label>
-                    <input name="finalCost" type="number" step="0.01" className="input" style={{ width: '100%', padding: '0.5rem' }} />
-                </div>
+            <h5 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--success))', marginBottom: '16px' }}>
+                <UserCheck size={16} /> Return to Customer
+            </h5>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <select name="returnMethod" value={returnMethod} onChange={(e) => setReturnMethod(e.target.value)} className="input">
+                    <option value="HAND_ON">🤝 Hand-on</option>
+                    <option value="COURIER">📦 Courier</option>
+                </select>
+                <Input name="finalCost" type="number" step="0.01" placeholder="Final Cost" />
             </div>
-
-            {returnMethod === 'COURIER' && (
-                <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Docket / Tracking Number</label>
-                    <input name="returnTrackingNumber" type="text" className="input" style={{ width: '100%', padding: '0.5rem' }} required />
-                </div>
-            )}
-
-            <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Description / Reason</label>
-                <textarea name="customerReturnDescription" className="input" style={{ width: '100%', padding: '0.5rem', minHeight: '80px' }} placeholder="e.g. Item rejected because..." />
-            </div>
-
-            <Button type="submit" disabled={isPending} isLoading={isPending} style={{ justifySelf: 'start', background: '#16a34a' }}>
-                Mark as Returned to Customer
-            </Button>
+            {returnMethod === 'COURIER' && <Input name="returnTrackingNumber" placeholder="Tracking Number" required className="mb-4" />}
+            <textarea name="customerReturnDescription" className="input" style={{ minHeight: '80px' }} placeholder="Final Notes..." />
+            <Button type="submit" disabled={isPending} isLoading={isPending} style={{ width: '100%', marginTop: '16px', background: 'hsl(var(--success))' }}>Complete & Return</Button>
         </form>
     );
 }
 
-
-
 function UndoBatchItemForm({ item, ticketId }: { item: any, ticketId: number }) {
     const [state, action, isPending] = useActionState(undoBatchItem, { message: '' });
-
     return (
         <form action={action}>
             <input type="hidden" name="itemId" value={item.id} />
             <input type="hidden" name="ticketId" value={ticketId} />
-            <button type="submit" disabled={isPending} style={{ fontSize: '0.75rem', color: 'var(--destructive)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
-                {isPending ? 'Undoing...' : 'Undo / Recall Item'}
+            <button type="submit" disabled={isPending} style={{ fontSize: '10px', color: 'hsl(var(--error))', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                {isPending ? '...' : 'Undo'}
             </button>
         </form>
     );
 }
 
-function getStatusColor(status: string) {
-    switch (status) {
-        case 'RECEIVED': return '#2563eb'; // Blue
-        case 'SENT_TO_COMPANY': return '#ea580c'; // Orange
-        case 'RECEIVED_FROM_COMPANY': return '#9333ea'; // Purple
-        case 'RETURNED_TO_CUSTOMER': return '#16a34a'; // Green
-        default: return '#4b5563';
-    }
+function getInitials(name: string): string {
+    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 }
 
-function getStatusBg(status: string) {
-    switch (status) {
-        case 'RECEIVED': return '#eff6ff';
-        case 'SENT_TO_COMPANY': return '#fff7ed';
-        case 'RECEIVED_FROM_COMPANY': return '#f3e8ff';
-        case 'RETURNED_TO_CUSTOMER': return '#f0fdf4';
-        default: return '#f3f4f6';
-    }
-}
-
-
-function formatDate(date: string | Date | null | undefined) {
+function formatDate(date: string | Date | null | undefined, includeTime = false): string {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
+        day: '2-digit', month: 'short', year: 'numeric',
+        ...(includeTime ? { hour: '2-digit', minute: '2-digit' } : {})
     });
 }
-
-function formatStatus(status: string) {
-    if (!status) return '';
-    return status.replace(/_/g, ' ');
-}
-
-

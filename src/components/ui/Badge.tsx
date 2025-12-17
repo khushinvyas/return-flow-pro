@@ -4,9 +4,10 @@ interface BadgeProps {
     children: React.ReactNode;
     variant?: 'default' | 'outline' | 'success' | 'warning' | 'error' | 'blue' | 'purple';
     className?: string;
+    style?: React.CSSProperties;
 }
 
-export function Badge({ children, variant = 'default', className = '' }: BadgeProps) {
+export function Badge({ children, variant = 'default', className = '', style = {} }: BadgeProps) {
 
     const variants: Record<string, React.CSSProperties> = {
         default: {
@@ -52,7 +53,8 @@ export function Badge({ children, variant = 'default', className = '' }: BadgePr
                 fontWeight: 600,
                 lineHeight: 1,
                 whiteSpace: 'nowrap',
-                ...variants[variant]
+                ...variants[variant],
+                ...style,
             }}
         >
             {children}

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { logTicketEvent } from '@/lib/events';
 
 
 async function checkAuth() {
@@ -93,6 +94,19 @@ export async function createTicket(prevState: any, formData: FormData) {
                     }
                 });
             }
+
+            // Log Event (we can call this safely here as it's fire-and-forget or we can await it)
+            // Ideally we wait for it to ensure consistency, but if it fails we don't want to rollback ticket?
+            // Actually, audit logs are critical. 
+            // Since logTicketEvent uses `prisma` (global), we can await it here.
+            await tx.ticketEvent.create({
+                data: {
+                    ticketId: ticket.id,
+                    userId: Number(userId),
+                    type: 'INFO',
+                    description: `Ticket created with ${items.length} items.`
+                }
+            });
         });
 
     } catch (e) {
@@ -140,7 +154,12 @@ export async function updateItemStage3(prevState: any, formData: FormData) {
     } catch {
         return { message: 'Failed to update item' };
     }
+
     revalidatePath(`/tickets/${ticketId}`);
+
+    // Log Update
+    await logTicketEvent(parseInt(ticketId), userId, 'STATUS_CHANGE', `Item #${itemId} received from company (Resolution: ${resolution})`);
+
     return { message: 'success' };
 }
 
@@ -157,16 +176,6 @@ export async function updateItemStage4(prevState: any, formData: FormData) {
     const ticketId = formData.get('ticketId') as string;
 
     const ticketIdInt = parseInt(ticketId);
-
-    console.log('DEBUG updateItemStage4:', {
-        itemId,
-        ticketIdInt,
-        userId,
-        organizationId,
-        isGlobalAdmin,
-        finalCost,
-        returnMethod
-    });
 
     try {
         await prisma.$transaction(async (tx) => {
@@ -185,8 +194,6 @@ export async function updateItemStage4(prevState: any, formData: FormData) {
                     status: 'RETURNED_TO_CUSTOMER'
                 }
             });
-
-            console.log('DEBUG updateItemStage4 Result:', updateResult);
 
             if (updateResult.count === 0) {
                 throw new Error('Item not found or unauthorized');
@@ -212,6 +219,15 @@ export async function updateItemStage4(prevState: any, formData: FormData) {
                     },
                     data: { status: 'COMPLETED' }
                 });
+                // Log Completion
+                await tx.ticketEvent.create({
+                    data: {
+                        ticketId: ticketIdInt,
+                        userId: Number(userId),
+                        type: 'STATUS_CHANGE',
+                        description: 'Ticket marked as COMPLETED (All items returned).'
+                    }
+                });
             }
         });
 
@@ -219,7 +235,12 @@ export async function updateItemStage4(prevState: any, formData: FormData) {
         console.error('DEBUG updateItemStage4 Error:', e);
         return { message: 'Failed to close item' };
     }
+
     revalidatePath(`/tickets/${ticketId}`);
+
+    // Log Update
+    await logTicketEvent(ticketIdInt, userId, 'STATUS_CHANGE', `Item #${itemId} returned to customer.`);
+
     return { message: 'success' };
 }
 
@@ -252,6 +273,10 @@ export async function undoBatchItem(prevState: any, formData: FormData) {
         return { message: 'Failed to undo item' };
     }
     revalidatePath(`/tickets/${ticketId}`);
+
+    // Log Update
+    await logTicketEvent(parseInt(ticketId), userId, 'INFO', `Undo: Item #${itemId} removed from batch.`);
+
     return { message: 'success' };
 }
 
