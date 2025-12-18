@@ -5,11 +5,16 @@ import DashboardChart from '@/components/DashboardChart';
 import ResolutionChart from '@/components/ResolutionChart';
 import BrandChart from '@/components/BrandChart';
 
+import { getSession } from '@/lib/auth';
+import VendorInventoryWidget from '@/components/VendorInventoryWidget';
+
 export default async function Home() {
+  const session = await getSession();
   const stats = await getDashboardStats();
 
   return (
     <div className="page-transition" style={{ maxWidth: '1600px', margin: '0 auto', paddingBottom: '2rem' }}>
+      {/* ... (Hero and KPI Grid remain the same) ... */}
 
       {/* Premium Hero Section */}
       <div className="premium-hero">
@@ -31,7 +36,7 @@ export default async function Home() {
           value={stats.totalOpenTickets}
           icon={Ticket}
           trend="+12%"
-          color="primary" // Using theme colors
+          color="primary"
           href="/tickets?status=OPEN"
         />
         <KPICard
@@ -65,7 +70,6 @@ export default async function Home() {
 
         {/* Left Column: Charts */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
           {/* Main Chart */}
           <div className="premium-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -98,70 +102,76 @@ export default async function Home() {
               </div>
             </div>
           </div>
-
         </div>
 
-        {/* Right Column: Recent Activity */}
-        <div className="premium-card" style={{ height: 'fit-content' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid hsl(var(--border))' }}>
-            <h3 style={{ fontSize: '1.25rem' }}>Recent Activity</h3>
-            <Link href="/tickets" className="btn btn-ghost btn-sm" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>
-              View All <ArrowRight size={14} />
-            </Link>
-          </div>
+        {/* Right Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {stats.recentActivity.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'hsl(var(--secondary-foreground))' }}>
-                <Activity size={32} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                <p>No recent activity</p>
-              </div>
-            ) : (
-              stats.recentActivity.map((ticket) => (
-                <Link key={ticket.id} href={`/tickets/${ticket.id}`}
-                  className="activity-item"
-                  style={{
-                    display: 'flex',
-                    gap: '1rem',
-                    padding: '1rem',
-                    borderRadius: 'var(--radius)',
-                    transition: 'background 0.2s',
-                    textDecoration: 'none',
-                    color: 'inherit'
-                  }}
-                >
-                  <div style={{
-                    width: '40px', height: '40px', borderRadius: '12px',
-                    background: 'hsl(var(--secondary))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                    color: 'hsl(var(--primary))'
-                  }}>
-                    <Activity size={18} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Ticket #{ticket.ticketNumber || ticket.id}</span>
-                      <span style={{ fontSize: '0.75rem', color: 'hsl(var(--secondary-foreground))' }}>
-                        {new Date(ticket.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </span>
+          {/* Vendor Inventory Widget */}
+          {session?.organizationId && <VendorInventoryWidget organizationId={session.organizationId} />}
+
+          {/* Recent Activity */}
+          <div className="premium-card" style={{ height: 'fit-content' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid hsl(var(--border))' }}>
+              <h3 style={{ fontSize: '1.25rem' }}>Recent Activity</h3>
+              <Link href="/tickets" className="btn btn-ghost btn-sm" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>
+                View All <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {stats.recentActivity.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'hsl(var(--secondary-foreground))' }}>
+                  <Activity size={32} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                  <p>No recent activity</p>
+                </div>
+              ) : (
+                stats.recentActivity.map((ticket) => (
+                  <Link key={ticket.id} href={`/tickets/${ticket.id}`}
+                    className="activity-item"
+                    style={{
+                      display: 'flex',
+                      gap: '1rem',
+                      padding: '1rem',
+                      borderRadius: 'var(--radius)',
+                      transition: 'background 0.2s',
+                      textDecoration: 'none',
+                      color: 'inherit'
+                    }}
+                  >
+                    <div style={{
+                      width: '40px', height: '40px', borderRadius: '12px',
+                      background: 'hsl(var(--secondary))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                      color: 'hsl(var(--primary))'
+                    }}>
+                      <Activity size={18} />
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: 'hsl(var(--secondary-foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {ticket.customer.name} • <span style={{ color: 'hsl(var(--primary))', fontWeight: 500 }}>{ticket.status}</span>
-                    </p>
-                  </div>
-                </Link>
-              ))
-            )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Ticket #{ticket.ticketNumber || ticket.id}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--secondary-foreground))' }}>
+                          {new Date(ticket.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.85rem', color: 'hsl(var(--secondary-foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {ticket.customer.name} • <span style={{ color: 'hsl(var(--primary))', fontWeight: 500 }}>{ticket.status}</span>
+                      </p>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
           </div>
-          <style>{`
-                .activity-item:hover {
-                    background: hsl(var(--secondary) / 0.5);
-                }
-            `}</style>
         </div>
 
       </div>
+      <style>{`
+            .activity-item:hover {
+                background: hsl(var(--secondary) / 0.5);
+            }
+        `}</style>
     </div>
   );
 }

@@ -24,7 +24,7 @@ export default function ResolutionChart({ data }: ResolutionChartProps) {
     return (
         <div style={{ width: '100%', height: '100%' }}>
             <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem' }}>Resolution Breakdown</h3>
-            <div style={{ width: '100%', height: 300 }}>
+            <div style={{ width: '100%', height: 300, minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie

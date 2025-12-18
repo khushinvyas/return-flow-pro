@@ -31,10 +31,21 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import ActionsMenu from '@/components/ActionsMenu';
 
-export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string; created?: string }> }) {
+import { ViewToggle } from '@/components/ViewToggle';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+
+export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string; created?: string; view?: string }> }) {
     const params = await searchParams;
     const query = params.q || '';
     const showSuccess = params.created === 'true';
+    const view = params.view || 'grid';
     const customers = await getCustomers(query);
 
     return (
@@ -53,9 +64,12 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                     <h1 style={{ fontSize: '1.875rem', fontWeight: 700 }}>Customers</h1>
                     <p style={{ color: 'var(--secondary-foreground)' }}>Manage your customer database</p>
                 </div>
-                <Button href="/customers/new">
-                    <Plus size={18} style={{ marginRight: '0.5rem' }} /> Add Customer
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <ViewToggle />
+                    <Button href="/customers/new">
+                        <Plus size={18} style={{ marginRight: '0.5rem' }} /> Add Customer
+                    </Button>
+                </div>
             </div>
 
             {/* Search Bar */}
@@ -78,52 +92,119 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                             outline: 'none'
                         }}
                     />
+                    {view === 'list' && <input type="hidden" name="view" value="list" />}
                 </form>
             </Card>
 
             {/* Customer List */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                {customers.map((customer) => (
-                    <Card key={customer.id}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                            <div style={{ width: 40, height: 40, background: 'var(--secondary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
-                                {customer.name.charAt(0).toUpperCase()}
+            {view === 'grid' ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                    {customers.map((customer) => (
+                        <Card key={customer.id}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                <div style={{ width: 40, height: 40, background: 'var(--secondary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
+                                    {customer.name.charAt(0).toUpperCase()}
+                                </div>
+
+                                <ActionsMenu
+                                    editUrl={`/customers/${customer.id}/edit`}
+                                    deleteAction={deleteCustomer}
+                                    id={customer.id}
+                                    entityName="customer"
+                                />
                             </div>
 
-                            <ActionsMenu
-                                editUrl={`/customers/${customer.id}/edit`}
-                                deleteAction={deleteCustomer}
-                                id={customer.id}
-                                entityName="customer"
-                            />
-                        </div>
+                            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.25rem' }}>{customer.name}</h3>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--secondary-foreground)', marginBottom: '1rem' }}>Added on {customer.createdAt.toLocaleDateString()}</p>
 
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.25rem' }}>{customer.name}</h3>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--secondary-foreground)', marginBottom: '1rem' }}>Added on {customer.createdAt.toLocaleDateString()}</p>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>
-                                <Phone size={16} />
-                                {customer.phone}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>
+                                    <Phone size={16} />
+                                    {customer.phone}
+                                </div>
+                                {customer.email && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>
+                                        <Mail size={16} />
+                                        {customer.email}
+                                    </div>
+                                )}
+                                {customer.address && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>
+                                        <MapPin size={16} />
+                                        {customer.address}
+                                    </div>
+                                )}
                             </div>
-                            {customer.email && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>
-                                    <Mail size={16} />
-                                    {customer.email}
-                                </div>
+                        </Card>
+                    ))}
+                </div>
+            ) : (
+                <div className="rounded-md border bg-card">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Customer</TableHead>
+                                <TableHead>Contact Info</TableHead>
+                                <TableHead>Address</TableHead>
+                                <TableHead>Joined</TableHead>
+                                <TableHead className="w-[80px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {customers.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-24 text-center">
+                                        No results.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                customers.map((customer) => (
+                                    <TableRow key={customer.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold">
+                                                    {customer.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="font-medium">{customer.name}</div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col text-sm">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Phone size={12} className="text-muted-foreground" />
+                                                    {customer.phone}
+                                                </div>
+                                                {customer.email && (
+                                                    <div className="flex items-center gap-1.5 text-muted-foreground/80">
+                                                        <Mail size={12} />
+                                                        {customer.email}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="max-w-[200px] truncate" title={customer.address || ''}>
+                                            {customer.address || '—'}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground text-sm">
+                                            {customer.createdAt.toLocaleDateString()}
+                                        </TableCell>
+                                        <TableCell>
+                                            <ActionsMenu
+                                                editUrl={`/customers/${customer.id}/edit`}
+                                                deleteAction={deleteCustomer}
+                                                id={customer.id}
+                                                entityName="customer"
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                ))
                             )}
-                            {customer.address && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>
-                                    <MapPin size={16} />
-                                    {customer.address}
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-                ))}
-            </div>
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
 
-            {customers.length === 0 && (
+            {customers.length === 0 && view === 'grid' && (
                 <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--secondary-foreground)' }}>
                     <p>No customers found.</p>
                 </div>

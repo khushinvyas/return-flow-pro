@@ -60,6 +60,22 @@ export default async function PrintBatchPage({ params }: { params: Promise<{ id:
             </div>
 
             <div style={{ marginBottom: '2rem' }}>
+                {(batch.dispatchNote || batch.courierName) && (
+                    <div style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '4px', background: '#f9f9f9' }}>
+                        <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.5rem 0', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>Dispatch Information</h3>
+                        {batch.dispatchNote && (
+                            <div style={{ marginBottom: '0.5rem' }}>
+                                <strong>Note:</strong> <span style={{ whiteSpace: 'pre-wrap' }}>{batch.dispatchNote}</span>
+                            </div>
+                        )}
+                        {batch.courierName && (
+                            <div>
+                                <strong>Courier:</strong> {batch.courierName}
+                                {batch.trackingNumber && <span style={{ marginLeft: '1.5rem' }}><strong>Tracking #:</strong> {batch.trackingNumber}</span>}
+                            </div>
+                        )}
+                    </div>
+                )}
                 <h3 style={{ borderBottom: '1px solid #ccc', paddingBottom: '0.25rem' }}>Items to Dispatch ({batch.items.length})</h3>
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
                     <thead>

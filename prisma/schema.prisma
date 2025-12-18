@@ -41,7 +41,7 @@ model Customer {
   email   String?
 
   userId Int
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   tickets   Ticket[]
   createdAt DateTime @default(now())
@@ -59,7 +59,7 @@ model Company {
   email   String?
 
   userId Int
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   batches   CompanyBatch[]
   createdAt DateTime       @default(now())
@@ -76,7 +76,7 @@ model Product {
   modelNumber String?
 
   userId Int
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   ticketItems TicketItem[]
   createdAt   DateTime     @default(now())
@@ -94,7 +94,7 @@ model TicketEvent {
   ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   
   userId    Int?
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   type      String   // STATUS_CHANGE, INFO, WARNING, ERROR
   description String
@@ -107,7 +107,7 @@ model Ticket {
 
   // Relations
   userId Int
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   customerId Int
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -168,7 +168,7 @@ model TicketItem {
   customerReturnDescription String? // Notes for the customer (e.g. rejection reason)
 
   userId Int // For easy filtering/ownership checks without joining Ticket
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -187,7 +187,7 @@ model CompanyBatch {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   userId Int
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   items TicketItem[]
 
@@ -195,6 +195,7 @@ model CompanyBatch {
 
   courierName    String?
   trackingNumber String?
+  dispatchNote   String?
   dateSent       DateTime?
 
   createdAt DateTime @default(now())
@@ -237,7 +238,7 @@ model OrganizationMember {
   role           String   @default("MEMBER") // OWNER, ADMIN, MEMBER
   
   userId         Int
-  user           User     @relation(fields: [userId], references: [id])
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)

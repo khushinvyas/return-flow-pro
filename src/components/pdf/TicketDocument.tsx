@@ -283,6 +283,28 @@ export function TicketDocument({ ticket, type, targetCompanyId }: TicketDocument
                     </View>
                 </View>
 
+                {/* Dispatch Details for Challan */}
+                {isChallan && items.length > 0 && items[0].companyBatch && (
+                    <View style={{ marginBottom: 20, padding: 10, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                        <Text style={[styles.sectionTitle, { color: '#000', marginBottom: 6 }]}>Dispatch Details</Text>
+                        {items[0].companyBatch.dispatchNote && (
+                            <Text style={{ fontSize: 9, marginBottom: 4 }}>
+                                <Text style={styles.bold}>Note: </Text>
+                                {items[0].companyBatch.dispatchNote}
+                            </Text>
+                        )}
+                        {items[0].companyBatch.courierName && (
+                            <Text style={{ fontSize: 9 }}>
+                                <Text style={styles.bold}>Courier: </Text>
+                                {items[0].companyBatch.courierName}
+                                {items[0].companyBatch.trackingNumber && (
+                                    <Text>   |   <Text style={styles.bold}>Tracking #: </Text>{items[0].companyBatch.trackingNumber}</Text>
+                                )}
+                            </Text>
+                        )}
+                    </View>
+                )}
+
                 {/* Table */}
                 <View style={styles.table}>
                     {/* Table Header */}

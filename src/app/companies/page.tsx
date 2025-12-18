@@ -29,10 +29,21 @@ import { Button } from '@/components/ui/Button';
 import ActionsMenu from '@/components/ActionsMenu';
 import { deleteCompany } from '../actions/inventory';
 
-export default async function CompaniesPage({ searchParams }: { searchParams: Promise<{ created?: string; q?: string }> }) {
+import { ViewToggle } from '@/components/ViewToggle';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+
+export default async function CompaniesPage({ searchParams }: { searchParams: Promise<{ created?: string; q?: string; view?: string }> }) {
     const params = await searchParams;
     const showSuccess = params.created === 'true';
     const query = params.q || '';
+    const view = params.view || 'grid';
     const companies = await getCompanies(query);
 
     return (
@@ -51,9 +62,12 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
                     <h1 style={{ fontSize: '1.875rem', fontWeight: 700 }}>Companies</h1>
                     <p style={{ color: 'var(--secondary-foreground)' }}>Manage vendor/company list</p>
                 </div>
-                <Button href="/companies/new">
-                    <Plus size={18} style={{ marginRight: '0.5rem' }} /> Add Company
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <ViewToggle />
+                    <Button href="/companies/new">
+                        <Plus size={18} style={{ marginRight: '0.5rem' }} /> Add Company
+                    </Button>
+                </div>
             </div>
 
             <Card style={{ padding: '1rem', marginBottom: '2rem' }}>
@@ -75,42 +89,103 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
                             outline: 'none'
                         }}
                     />
+                    {view === 'list' && <input type="hidden" name="view" value="list" />}
                 </form>
             </Card>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                {companies.map((company) => (
-                    <Card key={company.id}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <div style={{ width: 40, height: 40, background: 'var(--secondary)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Building2 size={20} />
+            {view === 'grid' ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                    {companies.map((company) => (
+                        <Card key={company.id}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <div style={{ width: 40, height: 40, background: 'var(--secondary)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Building2 size={20} />
+                                    </div>
+                                    <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>{company.name}</h3>
                                 </div>
-                                <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>{company.name}</h3>
+                                <ActionsMenu
+                                    editUrl={`/companies/${company.id}/edit`}
+                                    deleteAction={deleteCompany}
+                                    id={company.id}
+                                    entityName="company"
+                                />
                             </div>
-                            <ActionsMenu
-                                editUrl={`/companies/${company.id}/edit`}
-                                deleteAction={deleteCompany}
-                                id={company.id}
-                                entityName="company"
-                            />
-                        </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {company.phone && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>
-                                    <Phone size={16} /> {company.phone}
-                                </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {company.phone && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>
+                                        <Phone size={16} /> {company.phone}
+                                    </div>
+                                )}
+                                {company.email && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>
+                                        <Mail size={16} /> {company.email}
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            ) : (
+                <div className="rounded-md border bg-card">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Company</TableHead>
+                                <TableHead>Contact Info</TableHead>
+                                <TableHead className="w-[80px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {companies.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="h-24 text-center">
+                                        No results.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                companies.map((company) => (
+                                    <TableRow key={company.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center text-muted-foreground">
+                                                    <Building2 size={16} />
+                                                </div>
+                                                <div className="font-medium">{company.name}</div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col text-sm">
+                                                {company.phone && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Phone size={12} className="text-muted-foreground" />
+                                                        {company.phone}
+                                                    </div>
+                                                )}
+                                                {company.email && (
+                                                    <div className="flex items-center gap-1.5 text-muted-foreground/80">
+                                                        <Mail size={12} />
+                                                        {company.email}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <ActionsMenu
+                                                editUrl={`/companies/${company.id}/edit`}
+                                                deleteAction={deleteCompany}
+                                                id={company.id}
+                                                entityName="company"
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                ))
                             )}
-                            {company.email && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--secondary-foreground)' }}>
-                                    <Mail size={16} /> {company.email}
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-                ))}
-            </div>
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
         </div>
     );
 }

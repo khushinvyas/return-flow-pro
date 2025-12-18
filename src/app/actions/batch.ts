@@ -38,6 +38,7 @@ export async function createBatch(prevState: any, formData: FormData) {
     const companyId = parseInt(formData.get('companyId') as string);
     const courierName = formData.get('courierName') as string;
     const trackingNumber = formData.get('trackingNumber') as string;
+    const dispatchNote = formData.get('dispatchNote') as string;
     const itemIds = JSON.parse(formData.get('itemIds') as string);
     const ticketId = formData.get('ticketId') ? parseInt(formData.get('ticketId') as string) : null;
 
@@ -53,6 +54,7 @@ export async function createBatch(prevState: any, formData: FormData) {
                     companyId,
                     courierName,
                     trackingNumber,
+                    dispatchNote,
                     status: 'SENT',
                     dateSent: new Date(),
                     userId: Number(userId)

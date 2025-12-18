@@ -207,7 +207,7 @@ export default function TicketDetail({ ticket, companies }: { ticket: any, compa
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
                         <div>
                             <div style={styles.ticketBadge}>
-                                <span style={styles.pulseDot} />
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                                 <span style={{ fontSize: '14px', fontFamily: 'monospace', fontWeight: 600, color: 'white' }}>
                                     Ticket #{ticket.ticketNumber || ticket.id}
                                 </span>
@@ -265,7 +265,7 @@ export default function TicketDetail({ ticket, companies }: { ticket: any, compa
             </div>
 
             {/* GRID CONTENT */}
-            <div style={styles.gridContainer}>
+            <div className="ticket-detail-grid">
                 {/* LEFT COLUMN */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {/* Customer Card */}
@@ -383,11 +383,6 @@ export default function TicketDetail({ ticket, companies }: { ticket: any, compa
                     </div>
                 </div>
             </div>
-
-            <style jsx global>{`
-                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-                @media (max-width: 1200px) { [style*="gridTemplateColumns: 300px"] { grid-template-columns: 1fr !important; } }
-            `}</style>
         </div>
     );
 }
@@ -551,6 +546,12 @@ function SendToCompanyForm({ item, ticketId, companies }: { item: any, ticketId:
                     <Input name="courierName" placeholder="Courier Name" />
                     <Input name="trackingNumber" placeholder="Tracking No." />
                 </div>
+                <textarea
+                    name="dispatchNote"
+                    placeholder="Dispatch Note / Instructions..."
+                    className="input"
+                    style={{ minHeight: '60px', fontFamily: 'inherit' }}
+                />
             </div>
             <Button type="submit" disabled={isPending} isLoading={isPending} style={{ width: '100%', marginTop: '16px' }}>Dispatch Item</Button>
         </form>

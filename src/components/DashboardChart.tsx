@@ -6,7 +6,7 @@ export default function DashboardChart({ data }: { data: { name: string; count: 
     return (
         <div style={{ width: '100%', height: '100%' }}>
             <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem' }}>Ticket Volume (Last 7 Days)</h3>
-            <div style={{ width: '100%', height: 300 }}>
+            <div style={{ width: '100%', height: 300, minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                         data={data}

@@ -5,9 +5,10 @@ interface BadgeProps {
     variant?: 'default' | 'outline' | 'success' | 'warning' | 'error' | 'blue' | 'purple';
     className?: string;
     style?: React.CSSProperties;
+    glow?: boolean;
 }
 
-export function Badge({ children, variant = 'default', className = '', style = {} }: BadgeProps) {
+export function Badge({ children, variant = 'default', className = '', style = {}, glow = false }: BadgeProps) {
 
     const variants: Record<string, React.CSSProperties> = {
         default: {
@@ -41,6 +42,10 @@ export function Badge({ children, variant = 'default', className = '', style = {
         }
     };
 
+    const glowStyles = glow ? {
+        boxShadow: `0 0 12px ${variants[variant].color}40`, // 25% opacity of text color
+    } : {};
+
     return (
         <span
             className={className}
@@ -54,6 +59,7 @@ export function Badge({ children, variant = 'default', className = '', style = {
                 lineHeight: 1,
                 whiteSpace: 'nowrap',
                 ...variants[variant],
+                ...glowStyles,
                 ...style,
             }}
         >

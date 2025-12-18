@@ -9,6 +9,13 @@ export async function register(prevState: any, formData: FormData) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
+    // Organization Details
+    const orgNameInput = formData.get('orgName') as string;
+    const gstNumber = formData.get('gstNumber') as string;
+    const address = formData.get('address') as string;
+    const phone = formData.get('phone') as string;
+    const logo = formData.get('logo') as string;
+
     if (!name || !email || !password) {
         return { message: 'All fields are required' };
     }
@@ -25,7 +32,7 @@ export async function register(prevState: any, formData: FormData) {
         const hashedPassword = await hashPassword(password);
 
         const user = await prisma.$transaction(async (tx) => {
-            const orgName = `${name}'s Organization`;
+            const orgName = orgNameInput || `${name}'s Organization`;
             const slug = orgName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(Math.random() * 1000);
 
             return await tx.user.create({
@@ -42,7 +49,11 @@ export async function register(prevState: any, formData: FormData) {
                                     name: orgName,
                                     slug,
                                     subscriptionStatus: 'TRIAL',
-                                    subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                                    subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                                    gstNumber,
+                                    address,
+                                    phone,
+                                    logoUrl: logo
                                 }
                             }
                         }
