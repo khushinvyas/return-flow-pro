@@ -506,6 +506,8 @@ function SendToCompanyForm({ item, ticketId, companies }: { item: any, ticketId:
     const searchParams = useSearchParams();
     const initialCompanyId = searchParams.get('initialCompanyId');
     const [selectedCompanyId, setSelectedCompanyId] = useState(initialCompanyId || '');
+    const [dispatchMethod, setDispatchMethod] = useState('HAND_ON');
+    const [dispatchDate, setDispatchDate] = useState(new Date().toISOString().split('T')[0]); // Today's date
 
     // Sync with URL if user returns with a new company ID
     useEffect(() => {
@@ -518,10 +520,12 @@ function SendToCompanyForm({ item, ticketId, companies }: { item: any, ticketId:
         <form action={action} style={{ padding: '20px', background: 'hsl(var(--secondary))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
             <input type="hidden" name="itemIds" value={JSON.stringify([item.id])} />
             <input type="hidden" name="ticketId" value={ticketId} />
+            <input type="hidden" name="dispatchMethod" value={dispatchMethod} />
             <h5 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--primary))', marginBottom: '16px' }}>
                 <Truck size={16} /> Send to Service Center
             </h5>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Company Selection */}
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <select
                         name="companyId"
@@ -542,10 +546,43 @@ function SendToCompanyForm({ item, ticketId, companies }: { item: any, ticketId:
                         <Plus size={16} />
                     </Button>
                 </div>
+
+                {/* Dispatch Method & Date */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <Input name="courierName" placeholder="Courier Name" />
-                    <Input name="trackingNumber" placeholder="Tracking No." />
+                    <div>
+                        <label style={{ fontSize: '12px', color: 'hsl(var(--secondary-foreground))', marginBottom: '4px', display: 'block' }}>Dispatch Method</label>
+                        <select
+                            value={dispatchMethod}
+                            onChange={(e) => setDispatchMethod(e.target.value)}
+                            className="input"
+                            style={{ width: '100%' }}
+                        >
+                            <option value="HAND_ON">🤝 Hand Delivery</option>
+                            <option value="COURIER">📦 Courier</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '12px', color: 'hsl(var(--secondary-foreground))', marginBottom: '4px', display: 'block' }}>Dispatch Date</label>
+                        <input
+                            type="date"
+                            name="dateSent"
+                            value={dispatchDate}
+                            onChange={(e) => setDispatchDate(e.target.value)}
+                            className="input"
+                            style={{ width: '100%' }}
+                        />
+                    </div>
                 </div>
+
+                {/* Courier Fields (only visible when COURIER is selected) */}
+                {dispatchMethod === 'COURIER' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <Input name="courierName" placeholder="Courier Name" required />
+                        <Input name="trackingNumber" placeholder="Tracking No." />
+                    </div>
+                )}
+
+                {/* Dispatch Note */}
                 <textarea
                     name="dispatchNote"
                     placeholder="Dispatch Note / Instructions..."
@@ -586,6 +623,8 @@ function ReceiveFromCompanyForm({ item, ticketId }: { item: any, ticketId: numbe
 function ReturnToCustomerForm({ item, ticketId }: { item: any, ticketId: number }) {
     const [state, action, isPending] = useActionState(updateItemStage4, { message: '' });
     const [returnMethod, setReturnMethod] = useState('HAND_ON');
+    const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0]); // Today's date
+
     return (
         <form action={action} style={{ padding: '20px', background: 'hsl(var(--secondary))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
             <input type="hidden" name="itemId" value={item.id} />
@@ -593,14 +632,36 @@ function ReturnToCustomerForm({ item, ticketId }: { item: any, ticketId: number 
             <h5 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--success))', marginBottom: '16px' }}>
                 <UserCheck size={16} /> Return to Customer
             </h5>
+
+            {/* Row 1: Return Method + Date */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                <select name="returnMethod" value={returnMethod} onChange={(e) => setReturnMethod(e.target.value)} className="input">
-                    <option value="HAND_ON">🤝 Hand-on</option>
-                    <option value="COURIER">📦 Courier</option>
-                </select>
-                <Input name="finalCost" type="number" step="0.01" placeholder="Final Cost" />
+                <div>
+                    <label style={{ fontSize: '12px', color: 'hsl(var(--secondary-foreground))', marginBottom: '4px', display: 'block' }}>Return Method</label>
+                    <select name="returnMethod" value={returnMethod} onChange={(e) => setReturnMethod(e.target.value)} className="input" style={{ width: '100%' }}>
+                        <option value="HAND_ON">🤝 Hand-on</option>
+                        <option value="COURIER">📦 Courier</option>
+                    </select>
+                </div>
+                <div>
+                    <label style={{ fontSize: '12px', color: 'hsl(var(--secondary-foreground))', marginBottom: '4px', display: 'block' }}>Return Date</label>
+                    <input
+                        type="date"
+                        name="dateReturnedToCustomer"
+                        value={returnDate}
+                        onChange={(e) => setReturnDate(e.target.value)}
+                        className="input"
+                        style={{ width: '100%' }}
+                    />
+                </div>
             </div>
-            {returnMethod === 'COURIER' && <Input name="returnTrackingNumber" placeholder="Tracking Number" required className="mb-4" />}
+
+            {/* Row 2: Cost + Tracking (if courier) */}
+            <div style={{ display: 'grid', gridTemplateColumns: returnMethod === 'COURIER' ? '1fr 1fr' : '1fr', gap: '12px', marginBottom: '12px' }}>
+                <Input name="finalCost" type="number" step="0.01" placeholder="Final Cost" />
+                {returnMethod === 'COURIER' && <Input name="returnTrackingNumber" placeholder="Tracking Number" required />}
+            </div>
+
+            {/* Notes */}
             <textarea name="customerReturnDescription" className="input" style={{ minHeight: '80px' }} placeholder="Final Notes..." />
             <Button type="submit" disabled={isPending} isLoading={isPending} style={{ width: '100%', marginTop: '16px', background: 'hsl(var(--success))' }}>Complete & Return</Button>
         </form>

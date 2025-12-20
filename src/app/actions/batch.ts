@@ -36,9 +36,11 @@ export async function createBatch(prevState: any, formData: FormData) {
     const userId = await checkAuth();
 
     const companyId = parseInt(formData.get('companyId') as string);
+    const dispatchMethod = formData.get('dispatchMethod') as string; // HAND_ON or COURIER
     const courierName = formData.get('courierName') as string;
     const trackingNumber = formData.get('trackingNumber') as string;
     const dispatchNote = formData.get('dispatchNote') as string;
+    const dateSentStr = formData.get('dateSent') as string;
     const itemIds = JSON.parse(formData.get('itemIds') as string);
     const ticketId = formData.get('ticketId') ? parseInt(formData.get('ticketId') as string) : null;
 
@@ -46,21 +48,28 @@ export async function createBatch(prevState: any, formData: FormData) {
         return { message: 'Company and at least one item are required' };
     }
 
+    // Parse date or use current date
+    const dateSent = dateSentStr ? new Date(dateSentStr) : new Date();
+
     try {
         await prisma.$transaction(async (tx) => {
+            // 0. Get company name for event logging
+            const company = await tx.company.findUnique({
+                where: { id: companyId },
+                select: { name: true }
+            });
+
             // 1. Create Batch
             const batch = await tx.companyBatch.create({
                 data: {
                     companyId,
-                    courierName,
-                    trackingNumber,
+                    dispatchMethod: dispatchMethod || 'HAND_ON',
+                    courierName: dispatchMethod === 'COURIER' ? courierName : null,
+                    trackingNumber: dispatchMethod === 'COURIER' ? trackingNumber : null,
                     dispatchNote,
                     status: 'SENT',
-                    dateSent: new Date(),
+                    dateSent,
                     userId: Number(userId)
-                },
-                include: {
-                    company: true
                 }
             });
 
@@ -78,12 +87,13 @@ export async function createBatch(prevState: any, formData: FormData) {
 
             // 3. Create Ticket Event (if ticketId is provided)
             if (ticketId) {
+                const methodText = dispatchMethod === 'COURIER' ? `via ${courierName || 'Courier'}` : 'via Hand Delivery';
                 await tx.ticketEvent.create({
                     data: {
                         ticketId: ticketId,
                         userId: Number(userId),
                         type: 'STATUS_CHANGE',
-                        description: `Dispatched ${itemIds.length} item(s) to ${batch.company.name}. Tracking: ${trackingNumber || 'N/A'}`
+                        description: `Dispatched ${itemIds.length} item(s) to ${company?.name || 'Service Center'} ${methodText}. ${dispatchMethod === 'COURIER' && trackingNumber ? `Tracking: ${trackingNumber}` : ''}`
                     }
                 });
             }

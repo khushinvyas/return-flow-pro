@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { LayoutDashboard, Ticket, Users, Package, Building2, Settings, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Ticket, Users, Package, Building2, Settings, ShieldCheck, Truck } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
 import GlobalSearch from '@/components/GlobalSearch';
@@ -12,6 +12,10 @@ const navItems = [
     { name: 'Customers', href: '/customers', icon: Users },
     { name: 'Companies', href: '/companies', icon: Building2 },
     { name: 'Settings', href: '/settings', icon: Settings },
+];
+
+const reportItems = [
+    { name: 'Vendor Inventory', href: '/reports/vendor-inventory', icon: Truck },
 ];
 
 import { getSession } from '@/lib/auth';
@@ -38,7 +42,7 @@ export default async function Sidebar() {
     return (
         <aside className={`${styles.sidebar} no-print`}>
             <div className={styles.logo}>
-                <Image src="/logo.png" alt="ReturnFlow Pro" width={160} height={36} style={{ objectFit: 'contain' }} />
+                <Image src="/logo-v2.png" alt="ReturnFlow Pro" width={200} height={50} style={{ objectFit: 'contain' }} />
             </div>
 
             <div style={{ padding: '0 1rem 1rem' }}>
@@ -52,6 +56,19 @@ export default async function Sidebar() {
                         <span>{item.name}</span>
                     </Link>
                 ))}
+
+                {/* Reports Section */}
+                <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid hsl(var(--border) / 0.3)' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 600, color: 'hsl(var(--secondary-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '0.5rem', marginBottom: '0.5rem', display: 'block' }}>
+                        Reports
+                    </span>
+                    {reportItems.map((item) => (
+                        <Link key={item.name} href={item.href} className={styles.navLink}>
+                            <item.icon size={20} />
+                            <span>{item.name}</span>
+                        </Link>
+                    ))}
+                </div>
 
                 {isGlobalAdmin && (
                     <Link href="/admin" className={styles.navLink} style={{ marginTop: '1rem', borderTop: '1px solid hsl(var(--border))', paddingTop: '1rem' }}>

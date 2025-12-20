@@ -173,9 +173,13 @@ export async function updateItemStage4(prevState: any, formData: FormData) {
     const returnMethod = formData.get('returnMethod') as string;
     const returnTrackingNumber = formData.get('returnTrackingNumber') as string;
     const customerReturnDescription = formData.get('customerReturnDescription') as string;
+    const dateReturnedStr = formData.get('dateReturnedToCustomer') as string;
     const ticketId = formData.get('ticketId') as string;
 
     const ticketIdInt = parseInt(ticketId);
+
+    // Parse user-provided date or use current date
+    const dateReturnedToCustomer = dateReturnedStr ? new Date(dateReturnedStr) : new Date();
 
     try {
         await prisma.$transaction(async (tx) => {
@@ -188,9 +192,9 @@ export async function updateItemStage4(prevState: any, formData: FormData) {
                 data: {
                     finalCost,
                     returnMethod,
-                    returnTrackingNumber,
+                    returnTrackingNumber: returnMethod === 'COURIER' ? returnTrackingNumber : null,
                     customerReturnDescription,
-                    dateReturnedToCustomer: new Date(),
+                    dateReturnedToCustomer,
                     status: 'RETURNED_TO_CUSTOMER'
                 }
             });

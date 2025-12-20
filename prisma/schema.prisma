@@ -193,6 +193,7 @@ model CompanyBatch {
 
   status String @default("OPEN") // OPEN, SENT, CLOSED
 
+  dispatchMethod String? // HAND_ON, COURIER
   courierName    String?
   trackingNumber String?
   dispatchNote   String?

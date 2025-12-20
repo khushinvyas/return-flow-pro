@@ -192,9 +192,19 @@ export function TicketDocument({ ticket, type, targetCompanyId }: TicketDocument
         }
     }
 
-    const fixedDate = type === 'INWARD'
-        ? new Date(ticket.createdAt)
-        : new Date(ticket.updatedAt || ticket.createdAt); // Use updated or created for others
+    // Determine the document date based on type
+    let fixedDate: Date;
+    if (type === 'INWARD') {
+        fixedDate = new Date(ticket.createdAt);
+    } else if (isOutward && items.length > 0 && items[0].dateReturnedToCustomer) {
+        // For return receipts, use the actual return date from the item
+        fixedDate = new Date(items[0].dateReturnedToCustomer);
+    } else if (isChallan && items.length > 0 && items[0].companyBatch?.dateSent) {
+        // For challans, use the dispatch date from the batch
+        fixedDate = new Date(items[0].companyBatch.dateSent);
+    } else {
+        fixedDate = new Date(ticket.updatedAt || ticket.createdAt);
+    }
 
     return (
         <Document>
@@ -312,10 +322,11 @@ export function TicketDocument({ ticket, type, targetCompanyId }: TicketDocument
                         {isOutward ? (
                             <>
                                 <Text style={[styles.th, { width: '25%' }]}>Item / Problem</Text>
-                                <Text style={[styles.th, { width: '20%' }]}>Resolution</Text>
+                                <Text style={[styles.th, { width: '15%' }]}>Resolution</Text>
                                 <Text style={[styles.th, { width: '20%' }]}>Serial No.</Text>
-                                <Text style={[styles.th, { width: '20%' }]}>Docket No.</Text>
-                                <Text style={[styles.th, { width: '15%', textAlign: 'right' }]}>Amount</Text>
+                                <Text style={[styles.th, { width: '15%' }]}>Return Date</Text>
+                                <Text style={[styles.th, { width: '12%' }]}>Method</Text>
+                                <Text style={[styles.th, { width: '13%', textAlign: 'right' }]}>Amount</Text>
                             </>
                         ) : (
                             <>
@@ -340,7 +351,7 @@ export function TicketDocument({ ticket, type, targetCompanyId }: TicketDocument
                                             <Text style={{ fontSize: 8, color: '#475569', marginTop: 2, fontStyle: 'italic' }}>Note: {item.customerReturnDescription}</Text>
                                         )}
                                     </View>
-                                    <View style={[styles.td, { width: '20%' }]}>
+                                    <View style={[styles.td, { width: '15%' }]}>
                                         <Text>{item.resolution || item.status}</Text>
                                         {item.resolution === 'REJECTED' && (
                                             <Text style={{ color: '#ef4444', fontSize: 8, fontWeight: 'bold' }}>NOT REPAIRABLE</Text>
@@ -352,10 +363,20 @@ export function TicketDocument({ ticket, type, targetCompanyId }: TicketDocument
                                             <Text style={styles.bold}>New: {item.newSerialNumber}</Text>
                                         )}
                                     </View>
-                                    <View style={[styles.td, { width: '20%' }]}>
-                                        <Text>{item.returnMethod === 'COURIER' ? item.returnTrackingNumber : 'Hand Delivered'}</Text>
+                                    <View style={[styles.td, { width: '15%' }]}>
+                                        <Text style={{ fontSize: 9 }}>
+                                            {item.dateReturnedToCustomer
+                                                ? new Date(item.dateReturnedToCustomer).toLocaleDateString('en-GB')
+                                                : '-'}
+                                        </Text>
                                     </View>
-                                    <View style={[styles.td, { width: '15%', textAlign: 'right' }]}>
+                                    <View style={[styles.td, { width: '12%' }]}>
+                                        <Text style={{ fontSize: 8 }}>{item.returnMethod === 'COURIER' ? 'Courier' : 'Hand'}</Text>
+                                        {item.returnMethod === 'COURIER' && item.returnTrackingNumber && (
+                                            <Text style={{ fontSize: 7, color: '#64748b' }}>{item.returnTrackingNumber}</Text>
+                                        )}
+                                    </View>
+                                    <View style={[styles.td, { width: '13%', textAlign: 'right' }]}>
                                         <Text>{item.finalCost ? item.finalCost.toFixed(2) : '0.00'}</Text>
                                     </View>
                                 </>

@@ -18,7 +18,7 @@ export default function LoginPage() {
             <div className={`${styles.card} card`}>
                 <div className={styles.header}>
                     <div className={styles.logo}>
-                        <Image src="/logo.png" alt="ReturnFlow Pro" width={180} height={60} style={{ objectFit: 'contain' }} />
+                        <Image src="/logo-v2.png" alt="ReturnFlow Pro" width={180} height={60} style={{ objectFit: 'contain' }} />
                     </div>
                     <h1>Welcome Back</h1>
                     <p className="text-secondary">Sign in to your account</p>
