@@ -24,11 +24,12 @@ export async function searchAll(query: string) {
                         items: {
                             some: {
                                 OR: [
-                                    { serialNumber: { contains: query } },
-                                    { issueDescription: { contains: query } },
-                                    { product: { name: { contains: query } } },
-                                    { product: { brand: { contains: query } } },
-                                    { companyBatch: { company: { name: { contains: query } } } }
+                                    { serialNumber: { contains: query, mode: 'insensitive' } },
+                                    { newSerialNumber: { contains: query, mode: 'insensitive' } },
+                                    { issueDescription: { contains: query, mode: 'insensitive' } },
+                                    { product: { name: { contains: query, mode: 'insensitive' } } },
+                                    { product: { brand: { contains: query, mode: 'insensitive' } } },
+                                    { companyBatch: { company: { name: { contains: query, mode: 'insensitive' } } } }
                                 ]
                             }
                         }

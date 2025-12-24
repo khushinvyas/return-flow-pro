@@ -104,6 +104,7 @@ export default function GlobalSearch() {
                                         // Helper to find relevant item info
                                         const matchingItem = t.items.find((i: any) =>
                                             i.serialNumber.toLowerCase().includes(query.toLowerCase()) ||
+                                            i.newSerialNumber?.toLowerCase().includes(query.toLowerCase()) ||
                                             i.product.name.toLowerCase().includes(query.toLowerCase()) ||
                                             i.companyBatch?.company.name.toLowerCase().includes(query.toLowerCase())
                                         );

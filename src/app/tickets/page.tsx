@@ -24,6 +24,7 @@ async function getTickets(searchParams: { [key: string]: string | string[] | und
         const orConditions: any[] = [
             { customer: { name: { contains: query, mode: 'insensitive' } } },
             { items: { some: { serialNumber: { contains: query, mode: 'insensitive' } } } },
+            { items: { some: { newSerialNumber: { contains: query, mode: 'insensitive' } } } },
             { items: { some: { product: { name: { contains: query, mode: 'insensitive' } } } } },
         ];
 
@@ -47,7 +48,13 @@ async function getTickets(searchParams: { [key: string]: string | string[] | und
     if (productId || companyId || serial || itemStatus) {
         where.items = { some: where.items?.some || {} }; // Merge with existing items filter if any
         if (productId) where.items.some.productId = parseInt(productId);
-        if (serial) where.items.some.serialNumber = { contains: serial };
+        if (serial) {
+            // Search both old and new serial numbers
+            where.items.some.OR = [
+                { serialNumber: { contains: serial, mode: 'insensitive' } },
+                { newSerialNumber: { contains: serial, mode: 'insensitive' } }
+            ];
+        }
         if (itemStatus) where.items.some.status = itemStatus;
         if (companyId) {
             where.items.some.companyBatch = { companyId: parseInt(companyId) };

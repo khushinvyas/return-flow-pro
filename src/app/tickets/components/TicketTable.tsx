@@ -190,7 +190,7 @@ export default function TicketTable({ data }: TicketTableProps) {
             if (typeof value === 'string') return value.toLowerCase().includes(filterValue.toLowerCase());
             if (typeof value === 'number') return value.toString().includes(filterValue);
             if (row.original.customer?.name?.toLowerCase().includes(filterValue.toLowerCase())) return true;
-            if (row.original.items?.some((i: any) => i.product.name.toLowerCase().includes(filterValue.toLowerCase()) || i.serialNumber.toLowerCase().includes(filterValue.toLowerCase()))) return true;
+            if (row.original.items?.some((i: any) => i.product.name.toLowerCase().includes(filterValue.toLowerCase()) || i.serialNumber.toLowerCase().includes(filterValue.toLowerCase()) || i.newSerialNumber?.toLowerCase().includes(filterValue.toLowerCase()))) return true;
             return false;
         }
     });
